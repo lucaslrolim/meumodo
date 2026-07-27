@@ -1,0 +1,238 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   MEU MODO — design tokens
+   Source: 03_DESIGN_SYSTEM_FINAL.md §4-§6, amended this session:
+     · product theme converted dark -> light (was §4.1/§17 "produto dark")
+     · *ink variants added: #4AE54A as TEXT on white is 1.67:1 (fails AA).
+       Brand green stays a FILL (dark text on it = 10.09:1); *ink carries
+       text/icons at AA. Every ratio below verified against WCAG 2.2 AA (4.5:1
+       text, 3:1 UI) at plan time — see docs/plans /temporal-soaring-moonbeam.md.
+   ========================================================================== */
+
+:root {
+  /* -- surfaces — light-first "paper & ink". Neutral carries 80-90% of every
+     viewport; brand accent is capped at ~2-5%. Content (subject art, concept
+     color) supplies the rest. -- */
+  --mm-canvas: #ffffff; /* app background — the page is paper */
+  --mm-surface: #ffffff; /* cards sit flush; separated by hairlines, not fills */
+  --mm-surface-alt: #f1f1f2; /* soft surface: inputs, grouped rows, feedback */
+  --mm-edge: #e3e3e4; /* legacy hard-offset token, retained for progress track */
+
+  /* -- text -- */
+  --mm-ink: #161823; /* primary text — 16.9:1 on canvas */
+  --mm-ink-2: #55565f; /* secondary text — 7.6:1 on canvas */
+  --mm-mut: #6b6c75; /* metadata only — 5.5:1 on canvas, AA */
+  --mm-border: #e3e3e4; /* hairline divider */
+
+  /* paper grain: the notebook metaphor, drawn as a dot grid on the canvas */
+  --mm-dot: rgba(22, 24, 35, 0.07);
+
+  /* -- brand (§4.3) — demoted to a MEANING color, not a surface color.
+     Primary CTAs use ink (see --mm-action) as in the wireframe; green now
+     signals correctness, progress and mastery only, keeping it inside the
+     2-5% accent budget instead of coating every button. -- */
+  --mm-brand: #4ae54a; /* bright fill: small chips, check marks, filled bars */
+  --mm-brand-hover: #3cc53c;
+  --mm-brand-d: #2e9e2e; /* fill for thin bars/segments needing 3:1 on light track */
+  --mm-brand-ink: #1f6d24; /* TEXT/ICON on white — 6.1:1 */
+  --mm-brand-soft: rgba(74, 229, 74, 0.14);
+  --mm-brand-glow: rgba(74, 229, 74, 0.22);
+
+  /* -- action: the primary decision color. Ink, per wireframe btn-primary. -- */
+  --mm-action: #161823;
+  --mm-action-hover: #2b2d3a;
+  --mm-on-action: #ffffff;
+
+  /* -- semantic (§4.3) -- */
+  --mm-warn: #ffd60a;
+  --mm-warn-soft: rgba(255, 214, 10, 0.22);
+  --mm-warn-ink: #7a5d00; /* 6.19:1 */
+  --mm-err: #ff453a;
+  --mm-err-soft: rgba(255, 69, 58, 0.12);
+  --mm-err-ink: #c0271c; /* 5.92:1 */
+  --mm-info: #64d2ff;
+  --mm-info-soft: rgba(100, 210, 255, 0.2);
+  --mm-info-ink: #0a6e8f; /* 5.77:1 */
+
+  /* -- gamification (§4.3 — Duolingo chrome, theme-independent accents) -- */
+  --mm-xp: #ffd700; /* XP gold */
+  --mm-xp-soft: rgba(255, 215, 0, 0.16);
+  --mm-streak: #ff6b35; /* streak fire */
+  --mm-streak-soft: rgba(255, 107, 53, 0.16);
+  --mm-mastery: #bf5af2; /* dominated concept purple */
+  --mm-mastery-soft: rgba(191, 90, 242, 0.18);
+  --mm-gem: #64d2ff; /* gem blue */
+  --mm-heart: #ff2d55; /* TikTok heart pink — EXCLUSIVE to like/coração */
+  --mm-heart-soft: rgba(255, 45, 85, 0.16);
+
+  /* text/icons sitting ON a brand-green fill — dark in every theme */
+  --mm-on-brand: #0a2410;
+
+  /* -- landing/responsável light (§4.2 — now identical family as product) -- */
+  --mm-paper: #fafaf8;
+
+  /* -- feed scrims + rail (TikTok-native pass) -- */
+  --mm-scrim-top: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+  --mm-scrim-bottom: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  --mm-rail-shadow: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
+
+  /* -- radius (§6) -- */
+  --mm-radius-sm: 8px;
+  --mm-radius-md: 12px;
+  --mm-radius-lg: 16px;
+  --mm-radius-xl: 24px;
+  --mm-radius-full: 999px;
+
+  /* -- elevation (§6 — borda antes de sombra) -- */
+  --mm-elev-card: 0 2px 0 var(--mm-border);
+  --mm-elev-overlay: 0 12px 32px rgba(23, 23, 23, 0.14);
+  --mm-elev-focus: 0 0 0 3px rgba(10, 110, 143, 0.35);
+
+  /* shadcn primitive mapping so Button/Input/Sheet/etc inherit Meu Modo tokens */
+  --background: var(--mm-canvas);
+  --foreground: var(--mm-ink);
+  --card: var(--mm-surface);
+  --card-foreground: var(--mm-ink);
+  --popover: var(--mm-surface);
+  --popover-foreground: var(--mm-ink);
+  --primary: var(--mm-action);
+  --primary-foreground: var(--mm-on-action);
+  --secondary: var(--mm-surface-alt);
+  --secondary-foreground: var(--mm-ink);
+  --muted: var(--mm-surface-alt);
+  --muted-foreground: var(--mm-mut);
+  --accent: var(--mm-surface-alt);
+  --accent-foreground: var(--mm-ink);
+  --destructive: var(--mm-err-ink);
+  --border: var(--mm-border);
+  --input: var(--mm-border);
+  --ring: var(--mm-info-ink);
+  --radius: 0.75rem;
+}
+
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jbmono);
+  --font-heading: var(--font-nunito);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Meu Modo tokens as Tailwind utilities: bg-mm-brand, text-mm-brand-ink, etc. */
+  --color-mm-canvas: var(--mm-canvas);
+  --color-mm-surface: var(--mm-surface);
+  --color-mm-surface-alt: var(--mm-surface-alt);
+  --color-mm-edge: var(--mm-edge);
+  --color-mm-ink: var(--mm-ink);
+  --color-mm-ink-2: var(--mm-ink-2);
+  --color-mm-mut: var(--mm-mut);
+  --color-mm-border: var(--mm-border);
+  --color-mm-brand: var(--mm-brand);
+  --color-mm-brand-hover: var(--mm-brand-hover);
+  --color-mm-brand-d: var(--mm-brand-d);
+  --color-mm-brand-ink: var(--mm-brand-ink);
+  --color-mm-brand-soft: var(--mm-brand-soft);
+  --color-mm-brand-glow: var(--mm-brand-glow);
+  --color-mm-warn: var(--mm-warn);
+  --color-mm-warn-soft: var(--mm-warn-soft);
+  --color-mm-warn-ink: var(--mm-warn-ink);
+  --color-mm-err: var(--mm-err);
+  --color-mm-err-soft: var(--mm-err-soft);
+  --color-mm-err-ink: var(--mm-err-ink);
+  --color-mm-info: var(--mm-info);
+  --color-mm-info-soft: var(--mm-info-soft);
+  --color-mm-info-ink: var(--mm-info-ink);
+  --color-mm-xp: var(--mm-xp);
+  --color-mm-xp-soft: var(--mm-xp-soft);
+  --color-mm-streak: var(--mm-streak);
+  --color-mm-streak-soft: var(--mm-streak-soft);
+  --color-mm-mastery: var(--mm-mastery);
+  --color-mm-mastery-soft: var(--mm-mastery-soft);
+  --color-mm-gem: var(--mm-gem);
+  --color-mm-heart: var(--mm-heart);
+  --color-mm-heart-soft: var(--mm-heart-soft);
+  --color-mm-on-brand: var(--mm-on-brand);
+  --color-mm-action: var(--mm-action);
+  --color-mm-action-hover: var(--mm-action-hover);
+  --color-mm-on-action: var(--mm-on-action);
+
+  --radius-sm: var(--mm-radius-sm);
+  --radius-md: var(--mm-radius-md);
+  --radius-lg: var(--mm-radius-lg);
+  --radius-xl: var(--mm-radius-xl);
+  --radius-2xl: calc(var(--mm-radius-xl) * 1.15);
+  --radius-3xl: calc(var(--mm-radius-xl) * 1.4);
+  --radius-4xl: calc(var(--mm-radius-xl) * 1.7);
+  --radius-full: var(--mm-radius-full);
+}
+
+/* Paper grain — the notebook metaphor. Applied to the app shell so every
+   study surface sits on "paper" rather than flat white. Deliberately faint:
+   it should register as texture, never as decoration. */
+.mm-paper-grid {
+  background-image: radial-gradient(var(--mm-dot) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* motion tokens (§10) consumed by lib/motion; kept here so CSS-only
+   fallbacks (no-JS, reduced motion) can reference the same durations */
+:root {
+  --mm-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --mm-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --mm-motion-fast: 150ms;
+  --mm-motion-base: 250ms;
+  --mm-motion-slow: 600ms;
+}
+
+@keyframes mm-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

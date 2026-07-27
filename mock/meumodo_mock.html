@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>meu modo — mock navegável v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      canvas:'#FAFAF8', surface:'#FFFFFF', salt:'#F1F3F0',
+      ink:'#171717', ink2:'#5C5C57', mut:'#6F6F67', line:'#E3E3DD',
+      brand:'#4AE54A', brandh:'#3CC53C', brandink:'#2E7D32',
+      warn:'#FFD60A', err:'#FF453A', info:'#64D2FF',
+      paper:'#FAFAF8'
+    },
+    fontFamily: {
+      disp:['Nunito','sans-serif'], body:['Inter','sans-serif'], mono:['JetBrains Mono','monospace']
+    }
+  }}
+}
+</script>
+<style>
+:root{
+  /* PRODUTO · LIGHT — tokens canônicos §4.2, promovidos de landing para o app */
+  --canvas:#FAFAF8; --surface:#FFFFFF; --salt:#F1F3F0;
+  --ink:#171717; --ink2:#5C5C57; --mut:#6F6F67; --line:#E3E3DD;
+  --edge:#D8D8D0;
+  /* Verde de marca permanece em PREENCHIMENTO (texto #131F24 sobre ele = 10,09:1).
+     As variantes *ink sao as contrapartes AA para TEXTO E ICONE sobre superficie clara:
+     #4AE54A como texto sobre branco da 1,44:1 e e inutilizavel.
+     brandink 5,01:1 · warnink 6,0:1 · errink 5,9:1 · infoink 5,8:1  */
+  --brand:#4AE54A; --brandh:#3CC53C; --brandd:#2E9E2E; --brandink:#2E7D32;
+  --brandsoft:rgba(74,229,74,.14); --brandglow:rgba(74,229,74,.22);
+  --warn:#FFD60A; --warnsoft:rgba(255,214,10,.22); --warnink:#7A5D00;
+  --err:#FF453A;  --errsoft:rgba(255,69,58,.12);   --errink:#C0271C;
+  --info:#64D2FF; --infosoft:rgba(100,210,255,.20); --infoink:#0A6E8F;
+  --paper:#FAFAF8;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{ -webkit-tap-highlight-color:transparent; }
+html,body{ height:100%; }
+body{ background:#0E1418; font-family:'Inter',sans-serif; overflow:hidden; }
+.noscroll::-webkit-scrollbar{ display:none; }
+.noscroll{ scrollbar-width:none; }
+
+/* ---------- presentation canvas ---------- */
+.glow{ position:fixed; border-radius:50%; filter:blur(110px); opacity:.16; pointer-events:none; }
+.glow-a{ width:520px;height:520px; background:#64D2FF; top:-180px; right:-120px; animation:drift 14s ease-in-out infinite alternate; }
+.glow-b{ width:460px;height:460px; background:#4AE54A; bottom:-200px; left:200px; animation:drift 18s ease-in-out infinite alternate-reverse; }
+.glow-c{ width:420px;height:420px; background:#4AE54A; top:34%; left:-180px; opacity:.12; animation:drift 16s ease-in-out infinite alternate; }
+@keyframes drift{ from{ transform:translate(0,0) scale(1);} to{ transform:translate(40px,30px) scale(1.08);} }
+
+.wordmark{ font-family:'Nunito'; font-weight:900; letter-spacing:-.02em; }
+.mark{ background:var(--brand); color:#131F24; border-radius:8px; padding:0 10px; display:inline-block; transform:rotate(-1deg); }
+
+/* ---------- device frame ---------- */
+.device{
+  width:414px; height:876px; border-radius:60px; padding:12px;
+  background:linear-gradient(158deg,#28313a 0%, #10161b 34%, #000 68%);
+  box-shadow:0 0 0 2px #2a3136, inset 0 1px 1px rgba(255,255,255,.14),
+    0 40px 90px rgba(0,0,0,.65), 0 0 120px rgba(74,229,74,.06);
+  position:relative; flex:none;
+}
+.viewport{ width:390px; height:852px; border-radius:48px; overflow:hidden; position:relative; background:var(--canvas); }
+.island{ position:absolute; top:12px; left:50%; transform:translateX(-50%); width:112px; height:30px; background:#000; border-radius:20px; z-index:60; }
+.homebar{ position:absolute; bottom:9px; left:50%; transform:translateX(-50%); width:122px; height:5px;
+  border-radius:99px; background:rgba(23,23,23,.30); z-index:70; pointer-events:none; }
+
+/* ---------- screens ---------- */
+.scr{ position:absolute; inset:0; background:var(--canvas); color:var(--ink); display:flex; flex-direction:column;
+  opacity:0; pointer-events:none; transform:translateY(14px);
+  transition:opacity .28s var(--ease), transform .28s var(--ease);
+  overflow-y:auto; scrollbar-width:none; overscroll-behavior:contain; }
+.scr::-webkit-scrollbar{ display:none; }
+.scr.on{ opacity:1; pointer-events:auto; transform:none; }
+.scr.light{ background:var(--paper); color:#171717; }
+.scr-scroll{ flex:1; overflow-y:auto; overscroll-behavior:contain; }
+
+/* ---------- components ---------- */
+.btn{ font-family:'Nunito'; font-weight:800; font-size:16px; min-height:52px; border-radius:999px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0 24px;
+  cursor:pointer; user-select:none; border:none; transition:transform .12s var(--ease), box-shadow .12s var(--ease), background .15s; }
+.btn-p{ background:var(--brand); color:#131F24; box-shadow:0 4px 0 var(--brandd); }
+.btn-p:hover{ background:var(--brandh); }
+.btn-p:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--brandd); }
+.btn-g{ background:var(--salt); color:var(--ink); box-shadow:0 4px 0 var(--edge); border:1.5px solid var(--line); }
+.btn-g:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--edge); }
+.btn-w{ background:#25D366; color:#06210f; box-shadow:0 4px 0 #128C4A; }
+.btn-w:active{ transform:translateY(3px); box-shadow:0 1px 0 #128C4A; }
+.btn-ink{ background:#171717; color:#fff; box-shadow:0 4px 0 #000; }
+.btn-ink:active{ transform:translateY(3px); box-shadow:0 1px 0 #000; }
+.btn-block{ width:100%; }
+.btn-sm{ min-height:44px; font-size:14px; padding:0 18px; }
+
+.card{ background:var(--surface); border-radius:16px; border:1px solid var(--line); box-shadow:0 2px 0 var(--line); }
+.card-b{ background:var(--surface); border-radius:16px; border:1.5px solid var(--line); }
+.card-glow{ border:1.5px solid rgba(46,125,50,.55); box-shadow:0 2px 0 var(--edge), 0 10px 30px rgba(74,229,74,.14); }
+
+.chip{ font-family:'Nunito'; font-weight:700; font-size:14px; border-radius:999px; padding:10px 18px;
+  background:var(--salt); border:1.5px solid var(--line); color:var(--ink2); cursor:pointer; transition:all .15s var(--ease); user-select:none; }
+.chip.on{ background:var(--brandsoft); border-color:var(--brandink); color:var(--brandink); }
+.chip-st{ font-size:12px; padding:5px 12px; font-weight:800; border-radius:999px; display:inline-flex; align-items:center; gap:5px; }
+.chip-ok{ background:var(--brandsoft); color:var(--brandink); }
+.chip-warn{ background:var(--warnsoft); color:var(--warnink); }
+.chip-info{ background:var(--infosoft); color:var(--infoink); }
+
+.inp{ background:var(--salt); border:1.5px solid var(--line); border-radius:14px; color:var(--ink);
+  font-size:16px; padding:14px 18px; width:100%; outline:none; transition:border .15s, box-shadow .15s; }
+.inp:focus{ border-color:var(--infoink); box-shadow:0 0 0 3px rgba(100,210,255,.35); }
+.inp::placeholder{ color:var(--mut); }
+
+.lbl{ font-family:'Nunito'; font-weight:800; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut); }
+
+.progress{ height:8px; background:var(--salt); border-radius:99px; overflow:hidden; }
+.progress > i{ display:block; height:100%; background:var(--brandd); border-radius:99px; transition:width .5s var(--ease); }
+
+.iconbtn{ width:44px; height:44px; border-radius:50%; background:var(--salt); border:1.5px solid var(--line);
+  display:flex; align-items:center; justify-content:center; color:var(--ink); cursor:pointer; flex:none; transition:transform .12s var(--ease); }
+.iconbtn:active{ transform:scale(.92); }
+
+.micbtn{ width:56px; height:56px; border-radius:50%; background:var(--brand); color:#131F24; border:none;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;
+  box-shadow:0 4px 0 var(--brandd); transition:transform .12s var(--ease), box-shadow .12s; }
+.micbtn:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--brandd); }
+.micbtn.rec{ background:var(--err); color:#fff; box-shadow:0 4px 0 #B32226; animation:recpulse 1.4s ease-out infinite; }
+@keyframes recpulse{ 0%{ box-shadow:0 4px 0 #B32226, 0 0 0 0 rgba(255,69,58,.5);} 100%{ box-shadow:0 4px 0 #B32226, 0 0 0 18px rgba(255,69,58,0);} }
+
+/* bottom nav */
+.bnav{ display:flex; border-top:1.5px solid var(--line); background:var(--surface); padding:8px 12px 18px;
+  position:sticky; bottom:0; margin-top:auto; z-index:10; }
+.bnav button{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 0; color:var(--mut);
+  font-family:'Nunito'; font-weight:700; font-size:11px; background:none; border:none; cursor:pointer; border-radius:12px; }
+.bnav button.on{ color:var(--brandink); }
+
+/* sheets */
+.layer{ position:absolute; inset:0; z-index:40; display:flex; flex-direction:column; justify-content:flex-end;
+  opacity:0; pointer-events:none; transition:opacity .25s var(--ease); }
+.layer.on{ opacity:1; pointer-events:auto; }
+.layer .bk{ position:absolute; inset:0; background:rgba(5,10,12,.6); backdrop-filter:blur(2px); }
+.sheet{ position:relative; background:var(--surface); border-radius:24px 24px 0 0; border-top:1.5px solid var(--line);
+  box-shadow:0 -10px 34px rgba(23,23,23,.13);
+  padding:14px 20px 26px; transform:translateY(40px); transition:transform .3s var(--ease); max-height:86%; overflow-y:auto; scrollbar-width:none; }
+.sheet::-webkit-scrollbar{ display:none; }
+.layer.on .sheet{ transform:none; }
+.sheet .grab{ width:44px; height:5px; border-radius:99px; background:var(--line); margin:0 auto 14px; }
+.sheet.ok{ border-top:4px solid var(--brandd);
+  background:linear-gradient(180deg, rgba(74,229,74,.08), rgba(74,229,74,0) 130px), var(--surface); }
+.sheet.ok .grab{ background:var(--brandd); }
+.sheet.almost{ border-top:4px solid var(--warn);
+  background:linear-gradient(180deg, rgba(255,214,10,.10), rgba(255,214,10,0) 130px), var(--surface); }
+.sheet.almost .grab{ background:var(--warn); }
+
+/* session rail */
+.rail{ position:absolute; right:12px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:18px; z-index:20; }
+.rail button{ display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; cursor:pointer;
+  color:var(--ink); font-family:'Nunito'; font-weight:700; font-size:10px; }
+.rail .ric{ width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,.92); border:1.5px solid var(--line);
+  box-shadow:0 2px 10px rgba(23,23,23,.10);
+  display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px); transition:transform .15s var(--ease); }
+.rail button:active .ric{ transform:scale(.88); }
+
+/* waveform */
+.wave{ display:flex; align-items:center; gap:4px; height:56px; }
+.wave i{ width:5px; height:100%; border-radius:99px; background:var(--brand); animation:wv 1s ease-in-out infinite; }
+@keyframes wv{ 0%,100%{ transform:scaleY(.35);} 50%{ transform:scaleY(1);} }
+
+/* spinner */
+.spin{ width:18px; height:18px; border-radius:50%; border:2.5px solid var(--line); border-top-color:var(--brandink); animation:sp .8s linear infinite; }
+@keyframes sp{ to{ transform:rotate(360deg);} }
+[data-step]{ transition:opacity .3s var(--ease); }
+[data-step] .spin{ visibility:hidden; }
+[data-step].run{ opacity:1 !important; }
+[data-step].run .spin{ visibility:visible; }
+[data-step].done{ opacity:1 !important; }
+[data-step].done .spin{ visibility:hidden; }
+[data-step].done .stepic::before{ content:'✓'; font-family:'Nunito'; font-weight:900; font-size:17px; color:var(--brandink); }
+
+/* fake paper */
+.paper-doc{ background:#F5F2EA; color:#33322E; border:1px solid #E7E1D2; border-radius:12px; font-size:13.5px; line-height:1.75; }
+.paper-doc .hlw{ background:rgba(255,214,10,.5); border-radius:4px; padding:0 3px; }
+.paper-doc .hlg{ background:rgba(74,229,74,.4); border-radius:4px; padding:0 3px; }
+
+/* toast */
+.toast{ position:absolute; left:50%; bottom:96px; transform:translate(-50%,20px); z-index:80;
+  background:var(--ink); color:#FFFFFF; font-family:'Nunito'; font-weight:800; font-size:14px;
+  border-radius:999px; padding:12px 22px; opacity:0; pointer-events:none; transition:all .3s var(--ease); white-space:nowrap; }
+.toast.on{ opacity:1; transform:translate(-50%,0); }
+
+/* sidebar */
+.snav-item{ display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:7px 12px; border-radius:10px;
+  font-size:12.5px; font-weight:600; color:#9FB0B7; background:none; border:none; cursor:pointer; transition:all .15s; font-family:'Inter'; }
+.snav-item:hover{ background:rgba(255,255,255,.06); color:#fff; }
+.snav-item.on{ background:rgba(74,229,74,.15); color:var(--brand); }
+.snav-item .sid{ font-family:'JetBrains Mono'; font-size:10px; color:#5C6B72; width:32px; flex:none; }
+.snav-item.on .sid{ color:var(--brand); }
+
+.hintkbd{ font-family:'JetBrains Mono'; font-size:10.5px; color:#5C6B72; border:1px solid #232d33; border-radius:6px; padding:2px 7px; }
+
+/* feedback swipe hint */
+.swipehint{ display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--mut); font-size:11px;
+  font-family:'Nunito'; font-weight:700; animation:hintup 1.6s var(--ease) infinite; }
+@keyframes hintup{ 0%,100%{ transform:translateY(0); opacity:.7;} 50%{ transform:translateY(-6px); opacity:1;} }
+
+/* reveal */
+.reveal > *{ opacity:0; transform:translateY(8px); animation:rv .25s var(--ease) forwards; }
+.reveal > *:nth-child(1){ animation-delay:.02s } .reveal > *:nth-child(2){ animation-delay:.07s }
+.reveal > *:nth-child(3){ animation-delay:.12s } .reveal > *:nth-child(4){ animation-delay:.17s }
+.reveal > *:nth-child(5){ animation-delay:.22s } .reveal > *:nth-child(6){ animation-delay:.27s }
+@keyframes rv{ to{ opacity:1; transform:none; } }
+
+/* landing bits (light) */
+.lchip{ font-family:'Nunito'; font-weight:800; font-size:12px; letter-spacing:.08em; color:#3CC53C; }
+.stepcard{ background:#fff; border:1.5px solid #ECECE7; border-radius:20px; box-shadow:0 2px 0 #E5E5DF; }
+.lcard{ background:#fff; border:1.5px solid #ECECE7; border-radius:16px; box-shadow:0 2px 0 #E5E5DF; }
+.miniphone{ border-radius:26px; border:2px solid #171717; background:#131F24; }
+
+.starsel{ font-family:'Nunito'; font-weight:900; font-size:22px; width:52px; height:52px; border-radius:16px;
+  background:var(--salt); border:1.5px solid var(--line); color:var(--ink2); cursor:pointer; transition:all .15s var(--ease); }
+.starsel.on{ background:var(--brandsoft); border-color:var(--brandink); color:var(--brandink); transform:scale(1.06); }
+
+.qopt{ display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:var(--salt);
+  border:1.5px solid var(--line); border-radius:14px; padding:16px 18px; font-size:16px; font-weight:600; color:var(--ink);
+  cursor:pointer; transition:all .15s var(--ease); box-shadow:0 3px 0 var(--edge); }
+.qopt:active{ transform:translateY(2px); box-shadow:0 1px 0 var(--edge); }
+.qopt.on{ border-color:var(--brandink); background:var(--brandsoft); }
+
+.formula{ font-family:'JetBrains Mono'; font-size:15px; background:var(--canvas); border:1.5px solid var(--line);
+  border-radius:12px; padding:12px 16px; color:var(--infoink); }
+
+/* ================================================================
+   TIKTOK INTERACTION GRAMMAR  (verticalidade + uma unidade por vez)
+   Principles applied, not TikTok brand assets:
+   · full-bleed content, minimal chrome
+   · one primary gesture (swipe up) — Hick's law
+   · action rail in the right thumb zone — Fitts's law
+   · optical tightening of display type on dark surfaces
+   ================================================================ */
+
+/* segmented progress — variant of design system §11.9 (8px, salt track, brand fill) */
+.segprog{ display:flex; gap:3px; height:8px; }
+.segprog i{ flex:1; background:var(--salt); border-radius:99px;
+  transition:background .25s var(--ease), opacity .25s var(--ease); }
+.segprog i.done{ background:var(--brandd); }
+.segprog i.now{ background:var(--brandd); opacity:.45; }
+
+/* next-card motion — design system §10 "Next card: y 16→0 em 250ms" */
+.cardenter{ animation:cardin .25s var(--ease) both; }
+@keyframes cardin{ from{ opacity:0; transform:translateY(16px);} to{ opacity:1; transform:none;} }
+
+/* display type on dark: tighten optically, mirrors TikTok Sans' dark-mode axis */
+.qdisplay{ font-size:23px; line-height:1.28; font-weight:600; letter-spacing:-.011em; }
+
+/* rail sits in the thumb arc */
+.rail button:focus-visible .ric{ box-shadow:var(--elev-focus,0 0 0 3px rgba(100,210,255,.45)); }
+
+/* ---------- MODO CARD · shareable 9:16 artifact ---------- */
+.mcard{ position:relative; width:178px; aspect-ratio:9/16; border-radius:18px; overflow:hidden;
+  background:var(--canvas); border:1.5px solid var(--line); flex:none;
+  display:flex; flex-direction:column; padding:14px 13px; }
+.mcard::before{ content:''; position:absolute; width:160px; height:160px; border-radius:50%;
+  background:var(--brandglow); filter:blur(48px); top:-46px; right:-46px; pointer-events:none; }
+.mcard.sq{ aspect-ratio:1/1; width:236px; }
+.mc-head{ display:flex; align-items:center; gap:5px; position:relative; z-index:1; }
+.mc-logo{ width:17px; height:17px; border-radius:5px; background:var(--brand); color:#131F24;
+  font-family:'Nunito'; font-weight:900; font-size:9px; display:flex; align-items:center; justify-content:center; flex:none; }
+.mc-wm{ font-family:'Nunito'; font-weight:800; font-size:10.5px; letter-spacing:-.01em; color:var(--ink); }
+.mc-stage{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:9px;
+  position:relative; z-index:1; padding:8px 0; }
+.mc-foot{ position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.mc-eyebrow{ font-family:'Nunito'; font-weight:800; font-size:8.5px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--brandink); }
+.mc-big{ font-family:'Nunito'; font-weight:900; font-size:31px; line-height:1.02; letter-spacing:-.025em; color:var(--ink); }
+.mc-sub{ font-size:11px; line-height:1.4; color:var(--ink2); font-weight:500; }
+.mc-tag{ font-size:9px; font-weight:700; color:var(--ink2); }
+.mc-cta{ font-family:'Nunito'; font-weight:800; font-size:9.5px; color:var(--brandink); }
+.mc-paper{ background:#F5F2EA; color:#33322E; border-radius:7px; padding:8px 9px;
+  font-size:7.5px; line-height:1.6; transform:rotate(-2deg); }
+.mc-arrow{ display:flex; align-items:center; gap:5px; font-family:'Nunito'; font-weight:800;
+  font-size:9px; color:var(--brandink); }
+.mc-qs{ display:flex; flex-direction:column; gap:4px; }
+.mc-q{ background:var(--surface); border:1px solid var(--line); border-radius:7px;
+  padding:6px 8px; font-size:8px; line-height:1.35; color:var(--ink); }
+.mc-bars{ display:flex; flex-direction:column; gap:6px; }
+.mc-bar{ display:flex; flex-direction:column; gap:3px; }
+.mc-bar span{ font-size:8.5px; font-weight:600; color:var(--ink2); }
+.mc-bar i{ display:block; height:5px; border-radius:99px; background:var(--salt); overflow:hidden; }
+.mc-bar i b{ display:block; height:100%; border-radius:99px; background:var(--brandd); }
+.mc-dots{ display:flex; gap:4px; }
+.mc-dots i{ width:13px; height:13px; border-radius:50%; background:var(--salt); }
+.mc-dots i.on{ background:var(--brandd); }
+
+/* video mode: sequential beat reveal */
+.mc-beat{ opacity:1; }
+.mcard.playing .mc-beat{ opacity:0; animation:mcbeat 4.4s var(--ease) infinite; }
+.mcard.playing .mc-beat:nth-of-type(2){ animation-delay:.55s; }
+.mcard.playing .mc-beat:nth-of-type(3){ animation-delay:1.1s; }
+.mcard.playing .mc-beat:nth-of-type(4){ animation-delay:1.55s; }
+@keyframes mcbeat{ 0%{opacity:0;transform:translateY(9px)} 9%{opacity:1;transform:none}
+  90%{opacity:1;transform:none} 100%{opacity:0;transform:none} }
+
+.vidbar{ height:3px; border-radius:99px; background:var(--salt); overflow:hidden; }
+.vidbar i{ display:block; height:100%; width:0; background:var(--brand); border-radius:99px; }
+.vidwrap.playing .vidbar i{ animation:vidrun 4.4s linear infinite; }
+@keyframes vidrun{ from{width:0} to{width:100%} }
+
+/* format / variant controls */
+.fmtseg{ display:flex; background:var(--salt); border:1.5px solid var(--line); border-radius:999px; padding:3px; gap:3px; }
+.fmtseg button{ flex:1; min-height:38px; border-radius:999px; border:none; background:none; cursor:pointer;
+  font-family:'Nunito'; font-weight:800; font-size:13px; color:var(--ink2); transition:all .15s var(--ease); }
+.fmtseg button.on{ background:var(--brand); color:#131F24; }
+
+/* share destinations */
+.dest{ display:flex; flex-direction:column; align-items:center; gap:7px; background:none; border:none;
+  cursor:pointer; font-family:'Nunito'; font-weight:700; font-size:11px; color:var(--ink2); padding:0; }
+.dest .dic{ width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  border:1.5px solid var(--line); background:var(--salt); color:var(--ink);
+  transition:transform .12s var(--ease); }
+.dest:active .dic{ transform:scale(.9); }
+.dest.wa .dic{ background:#25D366; border-color:#25D366; color:#06210f; }
+
+/* share teaser strip */
+.sharestrip{ display:flex; align-items:center; gap:13px; background:var(--surface);
+  border:1.5px solid rgba(46,125,50,.45); border-radius:16px; padding:13px; }
+.sharestrip .thumb{ width:44px; height:78px; border-radius:8px; flex:none; overflow:hidden;
+  background:var(--canvas); border:1px solid var(--line); position:relative;
+  display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; }
+
+/* landing: emphasis grammar — one accent word, no gradients */
+.lsec{ border-top:1px solid #ECECE7; }
+.ltry{ background:#131F24; border-radius:20px; }
+
+/* ---------- focus + micro-interaction polish ---------- */
+.btn:focus-visible, .chip:focus-visible, .iconbtn:focus-visible, .micbtn:focus-visible,
+.qopt:focus-visible, .starsel:focus-visible, .bnav button:focus-visible, .snav-item:focus-visible{
+  outline:3px solid rgba(100,210,255,.55); outline-offset:2px; }
+.dest:focus-visible .dic{ outline:3px solid rgba(100,210,255,.55); outline-offset:2px; }
+.chip:active{ transform:scale(.96); }
+.qopt:hover{ border-color:var(--edge); }
+.dest:hover .dic{ border-color:var(--edge); }
+.bnav button{ transition:color .15s var(--ease); }
+
+/* ---------- reduced motion · design system §10 (was missing entirely) ---------- */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important; animation-iteration-count:1 !important;
+    transition-duration:.1s !important; scroll-behavior:auto !important; }
+  .glow{ animation:none !important; }
+  .swipehint{ animation:none !important; }
+  .micbtn.rec{ animation:none !important; }
+  .wave i{ animation:none !important; transform:scaleY(.6); }
+  .mcard.playing .mc-beat{ animation:none !important; opacity:1 !important; }
+  .vidbar i{ animation:none !important; width:100% !important; }
+}
+</style>
+</head>
+<body class="text-white">
+
+<div class="glow glow-a"></div>
+<div class="glow glow-b"></div>
+<div class="glow glow-c"></div>
+
+<!-- header -->
+<header class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-7 py-5">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl flex items-center justify-center font-disp font-black text-lg" style="background:var(--brand);color:#131F24">mm</div>
+    <div>
+      <div class="wordmark text-[17px] leading-none">meu modo</div>
+      <div class="text-[10.5px] font-mono" style="color:#5C6B72">mock navegável · v1</div>
+    </div>
+  </div>
+  <div class="hidden md:flex items-center gap-2 px-4 py-2 rounded-full" style="border:1px solid #232d33; background:rgba(255,255,255,.03)">
+    <span class="hintkbd">←</span><span class="hintkbd">→</span>
+    <span class="text-[11px] font-mono mr-3" style="color:#7E8F97">trocar tela</span>
+    <span class="hintkbd">↑</span>
+    <span class="text-[11px] font-mono" style="color:#7E8F97">na sessão: próxima atividade</span>
+  </div>
+</header>
+
+<!-- sidebar -->
+<aside id="snav" class="fixed left-0 top-[76px] bottom-6 w-[228px] pl-5 pr-3 overflow-y-auto noscroll z-40"></aside>
+
+<!-- stage -->
+<main class="h-full flex items-center justify-center">
+  <div id="scaler" style="transform-origin:center">
+    <div class="device">
+      <div class="viewport" id="viewport">
+        <div class="island"></div>
+        <div class="homebar"></div>
+        <!-- ============ P00 · LANDING (light) ============ -->
+<section class="scr light" id="scr-P00">
+  <div class="scr-scroll noscroll">
+    <nav class="flex items-center justify-between px-6 pt-12 pb-2">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center font-disp font-black text-sm" style="background:var(--brand);color:#131F24">mm</div>
+        <span class="wordmark text-[16px] text-[#171717]">meu modo</span>
+      </div>
+      <button class="font-disp font-bold text-[13px] px-4 py-2 rounded-full border-[1.5px] border-[#E5E5DF] text-[#171717]" onclick="MM.go('P01')">Entrar</button>
+    </nav>
+    <div class="px-6 pt-8 pb-6">
+      <div class="lchip mb-3">PRA PROVA DE MATEMÁTICA · FÍSICA · QUÍMICA</div>
+      <h1 class="wordmark text-[34px] leading-[1.08] text-[#171717]">Seu material vira <span class="mark">prática</span> pra sua prova.</h1>
+      <p class="text-[15px] leading-relaxed text-[#5A5A55] mt-4">Manda a lista, o slide ou o áudio da aula. A gente monta uma sessão curta de prática com o que a sua escola passou.</p>
+      <button class="btn btn-p btn-block mt-6" onclick="MM.go('P01')">Começar de graça</button>
+      <button class="btn btn-block mt-3 font-disp font-bold text-[15px] text-[#171717]" style="background:#EFEFEA;box-shadow:0 4px 0 #DCDCD2" onclick="MM.go('A01')">Ver como funciona</button>
+    </div>
+    <div class="px-6 pb-5">
+      <div class="miniphone mx-auto w-[210px] p-3" style="transform:rotate(-2deg)">
+        <div class="rounded-2xl p-3" style="background:var(--surface)">
+          <div class="chip-st chip-info mb-2">Fonte: Lista MRU · p. 2</div>
+          <div class="text-[12.5px] font-semibold leading-snug" style="color:var(--ink)">Um carro percorre 200 km em 4 horas. Qual a velocidade média?</div>
+          <div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-mono" style="background:var(--canvas);color:var(--infoink)">v = 200 ÷ 4 = 50 km/h ✓</div>
+        </div>
+      </div>
+    </div>
+    <div class="px-6 pb-6 space-y-3">
+      <div class="stepcard p-4 flex items-center gap-4">
+        <span class="text-[26px]">📸</span>
+        <div><div class="font-disp font-bold text-[15px] text-[#171717]">Manda o material</div><div class="text-[13px] text-[#5A5A55]">Foto, PDF ou áudio da aula. Até 3 por prova.</div></div>
+      </div>
+      <div class="stepcard p-4 flex items-center gap-4">
+        <span class="text-[26px]">⚡</span>
+        <div><div class="font-disp font-bold text-[15px] text-[#171717]">Pratica em 10 min</div><div class="text-[13px] text-[#5A5A55]">Questões curtas com feedback na hora.</div></div>
+      </div>
+      <div class="stepcard p-4 flex items-center gap-4">
+        <span class="text-[26px]">🎯</span>
+        <div><div class="font-disp font-bold text-[15px] text-[#171717]">Revisa na hora certa</div><div class="text-[13px] text-[#5A5A55]">O app lembra o que você precisa ver de novo.</div></div>
+      </div>
+    </div>
+    <div class="px-6 pb-10 text-center">
+      <div class="text-[12px] text-[#8A8A83]">Feito pra estudantes de 13 a 17 anos. Sem ranking, sem pressão.</div>
+      <div class="wordmark text-[14px] text-[#171717] mt-3">Seu material. Sua prova. Seu ritmo.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ P01 · IDADE ============ -->
+<section class="scr" id="scr-P01">
+  <div class="flex-1 flex flex-col justify-center px-7 reveal">
+    <div class="text-[30px] mb-2">🙌</div>
+    <h1 class="wordmark text-[28px] leading-tight">Antes de começar,<br>quantos anos você tem?</h1>
+    <div class="flex flex-wrap gap-2.5 mt-7" id="agechips">
+      <button class="chip" onclick="MM.selAge(this)">13</button>
+      <button class="chip" onclick="MM.selAge(this)">14</button>
+      <button class="chip" onclick="MM.selAge(this)">15</button>
+      <button class="chip" onclick="MM.selAge(this)">16</button>
+      <button class="chip on" onclick="MM.selAge(this)">17</button>
+      <button class="chip" onclick="MM.selAge(this)">18+</button>
+    </div>
+    <div class="card-b p-4 mt-8 flex gap-3">
+      <span data-ic="lock" class="mt-0.5" style="color:var(--infoink)"></span>
+      <p class="text-[13px] leading-relaxed" style="color:var(--ink2)">Seus materiais são seus. A gente só fala com um responsável na hora do pagamento — e mostra só seu progresso, nunca suas respostas.</p>
+    </div>
+  </div>
+  <div class="px-7 pb-10">
+    <button class="btn btn-p btn-block" onclick="MM.go('A00')">Continuar</button>
+  </div>
+</section>
+
+<!-- ============ A00 · HOME VAZIA ============ -->
+<section class="scr" id="scr-A00">
+  <div class="flex items-center justify-between px-6 pt-12 pb-2">
+    <span class="wordmark text-[18px]">meu modo</span>
+    <div class="w-9 h-9 rounded-full font-disp font-black text-[14px] flex items-center justify-center" style="background:var(--infosoft);color:var(--infoink)">A</div>
+  </div>
+  <div class="flex-1 px-6 pt-6 reveal">
+    <h1 class="wordmark text-[26px]">E aí, bora? 👋</h1>
+    <p class="text-[14px] mt-1" style="color:var(--ink2)">Tem prova chegando? Manda o material.</p>
+    <button class="w-full mt-7 rounded-2xl border-2 border-dashed p-6 text-left transition-transform active:scale-[.98]" style="border-color:var(--line);background:transparent" onclick="MM.go('A01')">
+      <div class="w-11 h-11 rounded-full flex items-center justify-center mb-3" style="background:var(--brand);color:#131F24" data-ic="plus"></div>
+      <div class="font-disp font-bold text-[16px]">Nova prova</div>
+      <div class="text-[13px] mt-0.5" style="color:var(--ink2)">Cria a primeira em 2 minutos.</div>
+    </button>
+    <div class="card p-4 mt-4 flex items-center gap-4 opacity-45">
+      <span data-ic="chat" style="color:var(--mut)"></span>
+      <div><div class="font-disp font-bold text-[14px]">Conversar com o Tutor</div><div class="text-[12px]" style="color:var(--mut)">Libera depois da primeira prova.</div></div>
+    </div>
+    <div class="card p-4 mt-3 flex items-center gap-4 opacity-45">
+      <span data-ic="chart" style="color:var(--mut)"></span>
+      <div><div class="font-disp font-bold text-[14px]">Seu progresso</div><div class="text-[12px]" style="color:var(--mut)">Aparece quando você praticar.</div></div>
+    </div>
+  </div>
+  <nav class="bnav">
+    <button class="on"><span data-ic="house"></span>Início</button>
+    <button disabled style="opacity:.4"><span data-ic="chart"></span>Progresso</button>
+    <button disabled style="opacity:.4"><span data-ic="chat"></span>Tutor</button>
+  </nav>
+</section>
+
+<!-- ============ A01 · NOVA PROVA ============ -->
+<section class="scr" id="scr-A01">
+  <header class="flex items-center gap-3 px-5 pt-12 pb-3">
+    <button class="iconbtn" onclick="MM.go('A00')" data-ic="back"></button>
+    <div class="wordmark text-[18px]">Nova prova 🎯</div>
+  </header>
+  <div class="scr-scroll noscroll px-6 pb-4 reveal">
+    <div class="lbl mt-3 mb-2.5">Matéria</div>
+    <div class="flex flex-wrap gap-2">
+      <button class="chip on" onclick="MM.selChip(this)">Física</button>
+      <button class="chip" onclick="MM.selChip(this)">Matemática</button>
+      <button class="chip" onclick="MM.selChip(this)">Química</button>
+    </div>
+    <div class="lbl mt-6 mb-2.5">Nome da prova</div>
+    <input class="inp" id="a01-nome" value="Cinemática" placeholder="Ex.: Cinemática, Funções…">
+    <div class="lbl mt-6 mb-2.5">Quando é? <span style="text-transform:none;letter-spacing:0">(opcional)</span></div>
+    <input class="inp" id="a01-data" value="sexta-feira" placeholder="Ex.: sexta-feira">
+    <div class="card-b p-4 mt-7 flex items-center gap-4" id="a01-voicerow">
+      <button class="micbtn" id="a01-mic" onclick="MM.voiceFill()" data-ic="mic"></button>
+      <div class="text-[13px] leading-snug" style="color:var(--ink2)">Prefere falar? Toca e conta:<br><span style="color:var(--ink);font-weight:600">“Prova de física de cinemática, sexta.”</span></div>
+    </div>
+    <div class="card card-glow p-4 mt-4 hidden" id="a01-confirm">
+      <div class="chip-st chip-ok mb-2">Entendi assim</div>
+      <div class="font-disp font-bold text-[15px]">Prova de Física · Cinemática · sexta-feira</div>
+      <div class="flex gap-2.5 mt-3">
+        <button class="btn btn-p btn-sm flex-1" onclick="MM.confirmVoice()">Confirmar</button>
+        <button class="btn btn-g btn-sm flex-1" onclick="MM.cancelVoice()">Corrigir</button>
+      </div>
+    </div>
+  </div>
+  <div class="px-6 pb-9 pt-2">
+    <button class="btn btn-p btn-block" onclick="MM.go('A02')">Continuar</button>
+  </div>
+</section>
+<!-- ============ A02 · ADICIONAR MATERIAL ============ -->
+<section class="scr" id="scr-A02">
+  <header class="flex items-center gap-3 px-5 pt-12 pb-3">
+    <button class="iconbtn" onclick="MM.go('A01')" data-ic="back"></button>
+    <div class="flex-1">
+      <div class="wordmark text-[18px]">Manda o material 📸</div>
+      <div class="text-[12px]" style="color:var(--ink2)">Prova de Física · Cinemática</div>
+    </div>
+    <span class="chip-st chip-info" id="a02-count">0 de 3</span>
+  </header>
+  <div class="flex-1 px-6 pt-3 reveal">
+    <p class="text-[14px] leading-relaxed mb-5" style="color:var(--ink2)">Vale lista de exercícios, slide, anotação ou o áudio da aula.</p>
+    <div class="space-y-3.5">
+      <button class="card p-5 w-full flex items-center gap-4 text-left active:scale-[.98] transition-transform" onclick="MM.go('A03')">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-none" style="background:var(--brand);color:#131F24" data-ic="camera"></div>
+        <div><div class="font-disp font-bold text-[16px]">Tirar foto</div><div class="text-[12.5px]" style="color:var(--ink2)">Do caderno, da lista ou do quadro.</div></div>
+      </button>
+      <button class="card p-5 w-full flex items-center gap-4 text-left active:scale-[.98] transition-transform" onclick="MM.addMat('pdf')">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-none" style="background:var(--infosoft);color:var(--infoink)" data-ic="image"></div>
+        <div><div class="font-disp font-bold text-[16px]">Escolher foto ou PDF</div><div class="text-[12.5px]" style="color:var(--ink2)">Da galeria ou dos arquivos.</div></div>
+      </button>
+      <button class="card p-5 w-full flex items-center gap-4 text-left active:scale-[.98] transition-transform" onclick="MM.go('A04')">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-none" style="background:var(--warnsoft);color:var(--warnink)" data-ic="mic"></div>
+        <div><div class="font-disp font-bold text-[16px]">Gravar áudio</div><div class="text-[12.5px]" style="color:var(--ink2)">Grava a explicação do prof na hora.</div></div>
+      </button>
+      <button class="card p-5 w-full flex items-center gap-4 text-left active:scale-[.98] transition-transform" onclick="MM.addMat('audio')">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-none" style="background:rgba(206,130,255,.15);color:#CE82FF" data-ic="music"></div>
+        <div><div class="font-disp font-bold text-[16px]">Escolher áudio</div><div class="text-[12.5px]" style="color:var(--ink2)">Uma aula que você já gravou.</div></div>
+      </button>
+    </div>
+  </div>
+  <div class="px-6 pb-9">
+    <div class="card-b p-3.5 flex gap-3 items-start">
+      <span class="text-[15px]">💡</span>
+      <p class="text-[12.5px] leading-snug" style="color:var(--ink2)">Áudio da aula rende ótimas questões. Pode mandar mesmo com barulho.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A03 · PREVIEW FOTO ============ -->
+<section class="scr" id="scr-A03">
+  <header class="flex items-center gap-3 px-5 pt-12 pb-3">
+    <button class="iconbtn" onclick="MM.go('A02')" data-ic="back"></button>
+    <div class="wordmark text-[18px]">Ficou boa?</div>
+  </header>
+  <div class="flex-1 px-6 flex flex-col justify-center">
+    <div class="paper-doc p-5 mx-2" style="transform:rotate(-.6deg)">
+      <div class="font-bold mb-2" style="font-family:'Nunito'">Lista de exercícios — MRU</div>
+      <div>1) Um carro percorre 200 km em 4 horas. Qual a velocidade média?</div>
+      <div class="mt-1.5">2) Um trem a 90 km/h por 2 horas percorre que distância?</div>
+      <div class="mt-1.5">3) No MRU, a velocidade é __________.</div>
+      <div class="mt-3 font-mono text-[12px]">v = ΔS / Δt</div>
+    </div>
+    <div class="text-center text-[12.5px] mt-4" style="color:var(--ink2)">Dá pra ler tudo? Então manda bala.</div>
+  </div>
+  <div class="px-6 pb-9 flex gap-3">
+    <button class="btn btn-g flex-1" onclick="MM.toast('Tira outra foto 📷')">Tirar outra</button>
+    <button class="btn btn-p flex-1" onclick="MM.addMat('foto')">Usar esta foto</button>
+  </div>
+</section>
+
+<!-- ============ A04 · GRAVAR ÁUDIO ============ -->
+<section class="scr" id="scr-A04">
+  <header class="flex items-center gap-3 px-5 pt-12 pb-3">
+    <button class="iconbtn" onclick="MM.stopRec();MM.go('A02')" data-ic="back"></button>
+    <div class="wordmark text-[18px]">Gravando a aula…</div>
+  </header>
+  <div class="flex-1 flex flex-col items-center justify-center px-8 gap-7">
+    <div class="wordmark text-[56px] tabular-nums" id="a04-timer">01:23</div>
+    <div class="wave" id="a04-wave"></div>
+    <div class="card-b p-4 flex gap-3 items-start">
+      <span class="text-[15px]">🎧</span>
+      <p class="text-[13px] leading-snug" style="color:var(--ink2)">Pode gravar mesmo com barulho. A gente destaca a voz do prof.</p>
+    </div>
+  </div>
+  <div class="px-6 pb-9 flex gap-3">
+    <button class="btn btn-g flex-1" onclick="MM.stopRec();MM.go('A02')">Cancelar</button>
+    <button class="btn btn-p flex-1" onclick="MM.stopRec();MM.addMat('audio')">Concluir</button>
+  </div>
+</section>
+
+<!-- ============ A05 · LISTA DE MATERIAIS ============ -->
+<section class="scr" id="scr-A05">
+  <header class="flex items-center gap-3 px-5 pt-12 pb-3">
+    <button class="iconbtn" onclick="MM.go('A02')" data-ic="back"></button>
+    <div class="flex-1">
+      <div class="wordmark text-[18px]">Seus materiais</div>
+      <div class="text-[12px]" style="color:var(--ink2)">Prova de Física · Cinemática</div>
+    </div>
+    <span class="chip-st chip-ok">3 de 3</span>
+  </header>
+  <div class="flex-1 px-6 pt-3 reveal">
+    <div class="card p-4 flex items-center gap-4">
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-none" style="background:var(--infosoft);color:var(--infoink)" data-ic="file"></div>
+      <div class="flex-1"><div class="font-disp font-bold text-[15px]">Lista_MRU.pdf</div><div class="text-[12px]" style="color:var(--ink2)">3 páginas</div></div>
+      <span class="chip-st chip-ok">✓ Texto conferido</span>
+    </div>
+    <div class="card p-4 flex items-center gap-4 mt-3">
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-none" style="background:var(--brandsoft);color:var(--brandink)" data-ic="camera"></div>
+      <div class="flex-1"><div class="font-disp font-bold text-[15px]">Foto do quadro</div><div class="text-[12px]" style="color:var(--ink2)">agora</div></div>
+      <span class="chip-st chip-ok">✓ Lido</span>
+    </div>
+    <div class="card p-4 flex items-center gap-4 mt-3">
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-none" style="background:var(--warnsoft);color:var(--warnink)" data-ic="music"></div>
+      <div class="flex-1"><div class="font-disp font-bold text-[15px]">Aula_quinta.m4a</div><div class="text-[12px]" style="color:var(--ink2)">03:42</div></div>
+      <span class="chip-st chip-warn">… Transcrevendo</span>
+    </div>
+    <button class="w-full mt-4 rounded-2xl border-2 border-dashed p-4 font-disp font-bold text-[14px] flex items-center justify-center gap-2" style="border-color:var(--line);color:var(--mut)" disabled>
+      <span data-ic="plus" data-ics="16"></span>Limite de 3 materiais por prova
+    </button>
+  </div>
+  <div class="px-6 pb-9">
+    <button class="btn btn-p btn-block" onclick="MM.go('A06')">Continuar</button>
+  </div>
+</section>
+
+<!-- ============ A06 · REVISAR OCR ============ -->
+<section class="scr" id="scr-A06">
+  <header class="flex items-center gap-3 px-5 pt-12 pb-3">
+    <button class="iconbtn" onclick="MM.go('A05')" data-ic="back"></button>
+    <div>
+      <div class="wordmark text-[18px]">Confere o que a gente leu ✓</div>
+      <div class="text-[12px]" style="color:var(--ink2)">Lista_MRU.pdf · página 1 de 3</div>
+    </div>
+  </header>
+  <div class="scr-scroll noscroll flex-1 px-6 pb-3">
+    <div class="paper-doc p-5" contenteditable="true" spellcheck="false">
+      <b>Lista de exercícios — MRU</b><br><br>
+      1) Um carro percorre 200 km em 4 horas. Qual a velocidade média?<br><br>
+      2) Um trem a 90 km/h por <span class="hlw">2 homas</span> percorre que distância?<br><br>
+      3) No MRU, a velocidade é <span class="hlw">constatne</span>.<br><br>
+      <span class="font-mono">v = ΔS / Δt</span>
+    </div>
+    <div class="flex gap-2.5 items-center mt-4 px-1">
+      <span class="inline-block w-3.5 h-3.5 rounded" style="background:rgba(255,214,10,.5)"></span>
+      <span class="text-[12.5px]" style="color:var(--ink2)">Trecho difícil de ler — confere e edita se precisar.</span>
+    </div>
+  </div>
+  <div class="px-6 pb-9 flex gap-3">
+    <button class="btn btn-g flex-1" onclick="MM.toast('Salvo ✓ Gera a prática quando quiser.')">Só salvar</button>
+    <button class="btn btn-p flex-1" onclick="MM.go('A07')">Salvar e continuar</button>
+  </div>
+</section>
+
+<!-- ============ A07 · REVISAR TRANSCRIÇÃO ============ -->
+<section class="scr" id="scr-A07">
+  <header class="flex items-center gap-3 px-5 pt-12 pb-3">
+    <button class="iconbtn" onclick="MM.go('A06')" data-ic="back"></button>
+    <div>
+      <div class="wordmark text-[18px]">Revisão do áudio 🎧</div>
+      <div class="text-[12px]" style="color:var(--ink2)">Aula_quinta.m4a · 03:42</div>
+    </div>
+  </header>
+  <div class="scr-scroll noscroll flex-1 px-6 pb-3 reveal">
+    <div class="card p-4 flex gap-3 items-start">
+      <button class="iconbtn" style="width:38px;height:38px" data-ic="play" data-ics="16" onclick="MM.toast('▶ tocando trecho')"></button>
+      <div class="flex-1">
+        <div class="font-mono text-[11px] mb-1" style="color:var(--mut)">00:00 – 00:18</div>
+        <div class="text-[14px] leading-snug">“Então, MRU é quando a velocidade não muda. O objeto anda sempre no mesmo ritmo.”</div>
+      </div>
+    </div>
+    <div class="card p-4 flex gap-3 items-start mt-3">
+      <button class="iconbtn" style="width:38px;height:38px" data-ic="play" data-ics="16" onclick="MM.toast('▶ tocando trecho')"></button>
+      <div class="flex-1">
+        <div class="font-mono text-[11px] mb-1" style="color:var(--mut)">00:18 – 00:41</div>
+        <div class="text-[14px] leading-snug">“A velocidade média é delta S sobre delta T. Distância dividida pelo tempo.”</div>
+      </div>
+    </div>
+    <div class="card-b p-4 flex gap-3 items-start mt-3" style="border-color:rgba(255,214,10,.5)">
+      <button class="iconbtn" style="width:38px;height:38px" data-ic="play" data-ics="16" onclick="MM.toast('▶ tocando trecho')"></button>
+      <div class="flex-1">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-mono text-[11px]" style="color:var(--mut)">00:41 – 01:02</span>
+          <span class="chip-st chip-warn">! confere esse trecho</span>
+        </div>
+        <div class="text-[14px] leading-snug" contenteditable="true" spellcheck="false">“O gráfico S por T é uma reta inclinada.”</div>
+      </div>
+    </div>
+  </div>
+  <div class="px-6 pb-9">
+    <button class="btn btn-p btn-block" onclick="MM.startProcessing()">Salvar e gerar prática</button>
+  </div>
+</section>
+<!-- ============ A08 · PROCESSANDO ============ -->
+<section class="scr" id="scr-A08">
+  <div class="flex-1 flex flex-col justify-center px-8">
+    <div class="wordmark text-[24px] mb-8">Montando sua prática ⚙️</div>
+    <div class="space-y-5" id="a08-steps">
+      <div class="flex items-center gap-3.5" data-step>
+        <span class="stepic w-6 flex justify-center"><span class="spin"></span></span>
+        <span class="text-[15px] font-semibold">Materiais conferidos</span>
+      </div>
+      <div class="flex items-center gap-3.5 opacity-40" data-step>
+        <span class="stepic w-6 flex justify-center"><span class="spin" style="visibility:hidden"></span></span>
+        <span class="text-[15px] font-semibold">Temas encontrados</span>
+      </div>
+      <div class="flex items-center gap-3.5 opacity-40" data-step>
+        <span class="stepic w-6 flex justify-center"><span class="spin" style="visibility:hidden"></span></span>
+        <span class="text-[15px] font-semibold">Criando exercícios</span>
+      </div>
+      <div class="flex items-center gap-3.5 opacity-40" data-step>
+        <span class="stepic w-6 flex justify-center"><span class="spin" style="visibility:hidden"></span></span>
+        <span class="text-[15px] font-semibold">Conferindo fontes</span>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2 mt-7 hidden" id="a08-temas">
+      <span class="chip on">MRU</span>
+      <span class="chip on">Velocidade média</span>
+      <span class="chip on">Gráficos S×t</span>
+    </div>
+  </div>
+  <div class="px-8 pb-12 text-center text-[13px]" style="color:var(--mut)">Pode sair da tela, a gente avisa quando ficar pronto.</div>
+</section>
+
+<!-- ============ A09 · PRÁTICA PRONTA ============ -->
+<section class="scr" id="scr-A09">
+  <div class="flex-1 flex flex-col justify-center px-7 reveal">
+    <div class="text-center">
+      <div class="text-[34px] mb-1">⚡</div>
+      <h1 class="wordmark text-[30px]">Tá pronto!</h1>
+      <p class="text-[14px] mt-1.5" style="color:var(--ink2)">Sua sessão de prática pra <b style="color:var(--ink)">Cinemática</b>.</p>
+    </div>
+    <div class="card card-glow p-6 mt-7 text-center">
+      <div class="wordmark text-[34px]" style="color:var(--brandink)">10 min</div>
+      <div class="text-[14px] font-semibold mt-0.5">12 atividades</div>
+      <div class="flex flex-wrap justify-center gap-2 mt-4">
+        <span class="chip on">MRU</span>
+        <span class="chip on">Velocidade média</span>
+        <span class="chip on">Gráficos S×t</span>
+      </div>
+      <div class="text-[12px] mt-4" style="color:var(--mut)">Fontes: Lista_MRU.pdf · Foto do quadro · Aula_quinta.m4a</div>
+    </div>
+    <div class="flex items-center justify-center gap-2 mt-5">
+      <span class="text-[12.5px] mr-1" style="color:var(--ink2)">Duração:</span>
+      <button class="chip" onclick="MM.selChip(this)">5</button>
+      <button class="chip on" onclick="MM.selChip(this)">10</button>
+      <button class="chip" onclick="MM.selChip(this)">15</button>
+    </div>
+  </div>
+  <div class="px-7 pb-10">
+    <button class="btn btn-p btn-block" onclick="MM.startSession()">Começar sessão</button>
+    <button class="w-full mt-3 py-2 font-disp font-bold text-[13.5px] flex items-center justify-center gap-1.5"
+            style="background:none;border:none;cursor:pointer;color:var(--brandink)" onclick="MM.openShare('transformacao')">
+      <span data-ic="share" data-ics="16"></span>Mostrar que virou 12 questões
+    </button>
+  </div>
+</section>
+
+<!-- ============ S · SESSÃO (S00–S06) ============ -->
+<section class="scr" id="scr-S">
+
+  <!-- S00 · questão -->
+  <div id="s-q" class="absolute inset-0 flex flex-col">
+    <header class="flex items-center gap-3 px-5 pt-12 pb-2">
+      <button class="iconbtn" style="background:transparent;border-color:transparent" onclick="MM.go('H00')" data-ic="x" aria-label="Sair da sessão"></button>
+      <div class="flex-1">
+        <div class="flex justify-between items-baseline mb-1.5">
+          <span class="font-disp font-bold text-[13px]">Física</span>
+          <span class="font-mono text-[11px]" style="color:var(--mut)" id="s-count">3 de 12</span>
+        </div>
+        <div class="segprog" id="s-prog" role="progressbar" aria-label="Progresso da sessão"></div>
+      </div>
+    </header>
+    <div class="px-6 pt-1">
+      <button class="chip-st chip-info active:scale-95 transition-transform" id="s-fonte" onclick="MM.openSource()">Fonte: Lista MRU · p. 2</button>
+    </div>
+    <div class="flex-1 flex flex-col justify-center px-6 pr-20" id="s-question-wrap">
+      <div class="lbl mb-3" id="s-conceito">Velocidade média</div>
+      <div class="qdisplay" id="s-question">Um carro percorre 200 km em 4 horas. Qual a velocidade média?</div>
+      <div class="mt-7" id="s-answer">
+        <div class="flex items-center gap-3">
+          <input class="inp flex-1" id="s-input" placeholder="Digita sua resposta…" style="min-height:56px;font-size:17px">
+          <button class="micbtn" onclick="MM.toast('🎤 Ouvindo… (mock)')" data-ic="mic"></button>
+        </div>
+      </div>
+    </div>
+    <div class="rail">
+      <button onclick="MM.openHint()" aria-label="Pedir uma pista"><span class="ric" data-ic="bulb"></span>pista</button>
+      <button onclick="MM.openTutor()" aria-label="Abrir o tutor do card"><span class="ric" data-ic="spark"></span>tutor</button>
+      <button onclick="MM.openSource()" aria-label="Ver o trecho de origem"><span class="ric" data-ic="file"></span>fonte</button>
+    </div>
+    <div class="px-6 pb-9 pt-2 flex gap-3">
+      <button class="btn btn-g flex-1" onclick="MM.answer('skip')">Não sei</button>
+      <button class="btn btn-p flex-1" onclick="MM.answer()">Responder</button>
+    </div>
+  </div>
+
+  <!-- S06 · fim da sessão -->
+  <div id="s-done" class="absolute inset-0 hidden flex-col">
+    <div class="flex-1 flex flex-col justify-center px-7 reveal">
+      <div class="text-center">
+        <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4" style="background:var(--brandsoft);color:var(--brandink)" data-ic="checkbig"></div>
+        <h1 class="wordmark text-[28px]">Fechou por hoje 🎯</h1>
+        <p class="text-[14px] mt-1.5" style="color:var(--ink2)">10 min · 3 conceitos praticados</p>
+      </div>
+      <div class="card p-5 mt-7 space-y-3.5">
+        <div class="flex justify-between items-center"><span class="text-[14px]" style="color:var(--ink2)">Acertos</span><span class="font-disp font-bold" style="color:var(--brandink)">10</span></div>
+        <div class="flex justify-between items-center"><span class="text-[14px]" style="color:var(--ink2)">Pra revisar</span><span class="font-disp font-bold" style="color:var(--warnink)">2</span></div>
+        <div class="flex justify-between items-center"><span class="text-[14px]" style="color:var(--ink2)">Volta na próxima sessão</span><span class="font-disp font-bold">1 conceito</span></div>
+      </div>
+      <div class="mt-6 space-y-3">
+        <div><div class="flex justify-between text-[12.5px] mb-1.5"><span class="font-semibold">Velocidade média</span><span style="color:var(--brandink)">subiu ↑</span></div><div class="progress"><i style="width:80%"></i></div></div>
+        <div><div class="flex justify-between text-[12.5px] mb-1.5"><span class="font-semibold">MRU</span><span style="color:var(--ink2)">60%</span></div><div class="progress"><i style="width:60%"></i></div></div>
+        <div><div class="flex justify-between text-[12.5px] mb-1.5"><span class="font-semibold">Gráficos S×t</span><span style="color:var(--ink2)">20%</span></div><div class="progress"><i style="width:20%"></i></div></div>
+      </div>
+
+      <button class="sharestrip mt-6 w-full text-left active:scale-[.98] transition-transform" onclick="MM.openShare('sessao')">
+        <span class="thumb">
+          <span class="text-[8px] font-disp font-black" style="color:var(--brandink)">10 min</span>
+          <span class="text-[6px] px-1 text-center leading-tight" style="color:var(--ink2)">3 conceitos</span>
+        </span>
+        <span class="flex-1">
+          <span class="block font-disp font-bold text-[15px]" style="color:var(--ink)">Seu card da sessão tá pronto</span>
+          <span class="block text-[12.5px] mt-0.5" style="color:var(--ink2)">Vídeo de 5s pro story. Sem suas respostas.</span>
+        </span>
+        <span class="text-[18px]" style="color:var(--brandink)" aria-hidden="true">›</span>
+      </button>
+    </div>
+    <div class="px-7 pb-10 space-y-3">
+      <button class="btn btn-p btn-block" onclick="MM.go('H00')">Voltar pra home</button>
+      <button class="btn btn-g btn-block" onclick="MM.go('T00')">Falar com o Tutor</button>
+    </div>
+  </div>
+
+  <!-- S01 · pista (sheet) -->
+  <div class="layer" id="s-hint">
+    <div class="bk" onclick="MM.closeLayer('s-hint')"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="flex items-center gap-2.5 mb-3">
+        <span style="color:var(--warnink)" data-ic="bulb"></span>
+        <span class="wordmark text-[18px]">Pista</span>
+      </div>
+      <p class="text-[15px] leading-relaxed" id="s-hint-text">Você tem a distância e o tempo. Qual fórmula liga os dois?</p>
+      <div class="formula mt-4" id="s-hint-formula">v = ΔS / Δt</div>
+      <div class="flex gap-3 mt-6">
+        <button class="btn btn-g flex-1" onclick="MM.closeLayer('s-hint');MM.openTutor()">Ainda travado</button>
+        <button class="btn btn-p flex-1" onclick="MM.closeLayer('s-hint')">Já sei, responder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- S02/S03 · feedback (sheet) -->
+  <div class="layer" id="s-fb">
+    <div class="bk"></div>
+    <div class="sheet" id="s-fb-sheet">
+      <div class="grab"></div>
+      <div id="s-fb-body"></div>
+      <div class="swipehint mt-4" id="s-fb-swipe"><span data-ic="up" data-ics="16"></span>desliza pra próxima</div>
+    </div>
+  </div>
+
+  <!-- S04 · tutor do card (sheet) -->
+  <div class="layer" id="s-tutor">
+    <div class="bk" onclick="MM.closeLayer('s-tutor')"></div>
+    <div class="sheet" style="max-height:92%">
+      <div class="grab"></div>
+      <div class="flex items-center justify-between mb-1">
+        <div class="wordmark text-[18px]">Tutor do card</div>
+        <span class="chip-st chip-info">Sobre esta questão</span>
+      </div>
+      <div class="flex flex-wrap gap-2 my-4">
+        <button class="chip" onclick="MM.tutorAsk('simples')">Explica mais simples</button>
+        <button class="chip" onclick="MM.tutorAsk('outro')">De outro jeito</button>
+        <button class="chip" onclick="MM.tutorAsk('exemplo')">Dá um exemplo</button>
+        <button class="chip" onclick="MM.tutorAsk('fonte')">Onde tá na fonte?</button>
+        <button class="chip" onclick="MM.tutorAsk('parecida')">Cria uma parecida</button>
+        <button class="chip" onclick="MM.toast('Anotado ✓ A gente revisa essa questão.')">Sinalizar questão</button>
+      </div>
+      <div class="flex flex-col gap-3 my-4 max-h-56 overflow-y-auto noscroll" id="s-tutor-msgs">
+        <div class="max-w-[92%] rounded-2xl rounded-bl-md px-4 py-3 text-[14px] leading-relaxed" style="background:var(--salt); color:var(--ink)">Oi! Tô aqui pra essa questão. Travou em alguma parte, ou quer que eu explique de outro jeito?</div>
+      </div>
+      <div class="card-b p-4" id="s-tutor-micro" style="display:none">
+        <div class="chip-st chip-ok mb-2">Rapidinho, pra fixar</div>
+        <div class="text-[14px] font-semibold">Me diz: 100 km em 2 horas dá quanto?</div>
+        <div class="flex gap-2.5 mt-3">
+          <input class="inp" placeholder="Sua resposta…" style="min-height:44px;font-size:14px;padding:10px 14px" id="s-micro-in">
+          <button class="btn btn-p btn-sm" onclick="MM.microAnswer()">Vai</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2.5 mt-4">
+        <input class="inp flex-1" placeholder="Pergunta pro tutor…" style="min-height:48px;font-size:14px" id="s-tutor-in" onkeydown="if(event.key==='Enter')MM.tutorSend()">
+        <button class="micbtn" style="width:48px;height:48px" data-ic="mic" onclick="MM.toast('🎤 Ouvindo… (mock)')"></button>
+      </div>
+      <button class="btn btn-g btn-block mt-4" onclick="MM.closeLayer('s-tutor')">Voltar pra questão</button>
+    </div>
+  </div>
+
+  <!-- S05 · ver na fonte (overlay full) -->
+  <div class="layer" id="s-source" style="justify-content:flex-start">
+    <div class="bk" style="background:rgba(5,10,12,.92)"></div>
+    <div class="relative flex flex-col h-full">
+      <header class="flex items-center gap-3 px-5 pt-12 pb-3">
+        <button class="iconbtn" onclick="MM.closeLayer('s-source')" data-ic="x"></button>
+        <div class="font-disp font-bold text-[15px]" id="s-source-title">Lista_MRU.pdf · p. 2</div>
+      </header>
+      <div class="flex-1 flex flex-col justify-center px-8">
+        <div class="paper-doc p-5" style="transform:rotate(-.4deg)">
+          <div class="font-bold mb-2" style="font-family:'Nunito'">Lista de exercícios — MRU</div>
+          <div class="opacity-45">2) Um trem a 90 km/h por 2 horas percorre que distância?</div>
+          <div class="hlg mt-2 -mx-1 px-1 py-1">1) Um carro percorre 200 km em 4 horas. Qual a velocidade média? <span class="font-mono text-[12px]">v = ΔS/Δt = 50 km/h</span></div>
+          <div class="opacity-45 mt-2">3) No MRU, a velocidade é __________.</div>
+        </div>
+        <div class="text-center text-[12.5px] mt-4" style="color:var(--ink2)">Trecho usado pra criar a questão.</div>
+      </div>
+      <div class="px-8 pb-10">
+        <button class="btn btn-p btn-block" onclick="MM.closeLayer('s-source')">Voltar pra questão</button>
+      </div>
+    </div>
+  </div>
+</section>
+    <!-- ============ H00 HOME ATIVA ============ -->
+    <section class="scr" id="scr-H00">
+      <div class="px-5 pt-12 pb-3 flex items-center justify-between">
+        <div>
+          <div class="text-[13px] font-semibold" style="color:var(--ink2)">Boa tarde,</div>
+          <h1 class="font-disp font-extrabold text-[26px] leading-tight" style="color:var(--ink)">Ana 👋</h1>
+        </div>
+        <div class="w-11 h-11 rounded-full flex items-center justify-center font-disp font-black text-[15px]"
+             style="background:var(--salt); color:var(--brandink); box-shadow:0 2px 0 var(--line)">A</div>
+      </div>
+      <div class="px-5 flex flex-col gap-4 pb-28">
+        <div class="card-glow p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="chip-st on">Em andamento</span>
+            <span class="text-[12px] font-semibold" style="color:var(--ink2)">Cinemática</span>
+          </div>
+          <div class="font-disp font-extrabold text-[21px] mb-1" style="color:var(--ink)">Prova de Física</div>
+          <div class="text-[14px] font-medium mb-4" style="color:var(--ink2)">sexta-feira · 2 materiais anexados</div>
+          <div class="rounded-2xl p-3.5 mb-4 flex items-center gap-3" style="background:var(--salt)">
+            <span class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:var(--brandsoft); color:var(--brandink)"><span data-ic="spark" data-ics="20"></span></span>
+            <div class="text-[14px] leading-snug font-medium" style="color:var(--ink)"><b>3 atividades pra revisar</b> antes da prova. Bora?</div>
+          </div>
+          <button class="btn btn-p w-full" onclick="MM.startSession()">Continuar · 8 min</button>
+        </div>
+        <div class="card p-4 flex items-center gap-3 cursor-pointer" onclick="MM.go('T00')">
+          <span class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style="background:var(--brandsoft); color:var(--brandink)"><span data-ic="chat" data-ics="22"></span></span>
+          <div class="flex-1">
+            <div class="text-[15px] font-bold" style="color:var(--ink)">Conversar com o Tutor</div>
+            <div class="text-[13px]" style="color:var(--ink2)">Pergunta sobre qualquer material seu</div>
+          </div>
+          <span class="text-[18px]" style="color:var(--mut)">›</span>
+        </div>
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="lbl" style="margin:0">Materiais</span>
+            <span class="text-[12px] font-bold" style="color:var(--ink2)">2 de 3</span>
+          </div>
+          <div class="flex gap-2">
+            <span class="chip"><span data-ic="file" data-ics="14"></span>&nbsp;Lista_MRU.pdf</span>
+            <span class="chip"><span data-ic="music" data-ics="14"></span>&nbsp;Aula_quinta.m4a</span>
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="lbl" style="margin:0">Como você tá</span>
+            <button class="text-[13px] font-bold" style="color:var(--brandink); background:none; border:none; cursor:pointer" onclick="MM.go('H01')">Ver tudo</button>
+          </div>
+          <div class="flex flex-col gap-2.5">
+            <div><div class="flex justify-between text-[13px] mb-1"><span class="font-semibold" style="color:var(--ink)">MRU</span><span style="color:var(--ink2)">firme</span></div><div class="progress"><i style="width:80%"></i></div></div>
+            <div><div class="flex justify-between text-[13px] mb-1"><span class="font-semibold" style="color:var(--ink)">MRUV</span><span style="color:var(--ink2)">caminhando</span></div><div class="progress"><i style="width:40%"></i></div></div>
+            <div><div class="flex justify-between text-[13px] mb-1"><span class="font-semibold" style="color:var(--ink)">Gráficos S×t</span><span style="color:var(--ink2)">começando</span></div><div class="progress"><i style="width:20%"></i></div></div>
+          </div>
+        </div>
+        <button class="btn btn-g w-full" onclick="MM.go('E00')">Concluir prova</button>
+      </div>
+      <nav class="bnav">
+        <button class="on" onclick="MM.go('H00')"><span data-ic="house" data-ics="22"></span>Início</button>
+        <button onclick="MM.go('T00')"><span data-ic="chat" data-ics="22"></span>Tutor</button>
+        <button onclick="MM.go('H01')"><span data-ic="chart" data-ics="22"></span>Progresso</button>
+      </nav>
+    </section>
+
+    <!-- ============ H01 PROGRESSO ============ -->
+    <section class="scr" id="scr-H01">
+      <div class="px-5 pt-12 pb-2">
+        <h1 class="font-disp font-extrabold text-[26px]" style="color:var(--ink)">Seu progresso 📈</h1>
+        <p class="text-[14px] mt-1" style="color:var(--ink2)">Prova de Física · sexta-feira</p>
+      </div>
+      <div class="px-5 flex flex-col gap-4 pb-28">
+        <div class="card p-4">
+          <div class="lbl">Conceitos</div>
+          <div class="flex flex-col gap-3">
+            <div><div class="flex justify-between text-[14px] mb-1"><span class="font-semibold" style="color:var(--ink)">Velocidade média</span><span class="text-[12px] font-bold" style="color:var(--brandink)">firme</span></div><div class="progress"><i style="width:85%"></i></div></div>
+            <div><div class="flex justify-between text-[14px] mb-1"><span class="font-semibold" style="color:var(--ink)">MRU</span><span class="text-[12px] font-bold" style="color:var(--brandink)">firme</span></div><div class="progress"><i style="width:80%"></i></div></div>
+            <div><div class="flex justify-between text-[14px] mb-1"><span class="font-semibold" style="color:var(--ink)">MRUV</span><span class="text-[12px] font-bold" style="color:var(--warnink)">caminhando</span></div><div class="progress"><i style="width:40%; background:var(--warn)"></i></div></div>
+            <div><div class="flex justify-between text-[14px] mb-1"><span class="font-semibold" style="color:var(--ink)">Gráficos S×t e V×t</span><span class="text-[12px] font-bold" style="color:var(--ink2)">começando</span></div><div class="progress"><i style="width:20%; background:var(--mut)"></i></div></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="card p-4 text-center">
+            <div class="font-disp font-black text-[28px]" style="color:var(--brandink)">12</div>
+            <div class="text-[12px] font-semibold mt-0.5" style="color:var(--ink2)">revisões feitas</div>
+          </div>
+          <div class="card p-4 text-center">
+            <div class="font-disp font-black text-[28px]" style="color:var(--ink)">4</div>
+            <div class="text-[12px] font-semibold mt-0.5" style="color:var(--ink2)">sessões de estudo</div>
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="lbl">Sessões</div>
+          <div class="flex flex-col gap-2.5">
+            <div class="flex items-center justify-between text-[14px]"><span class="font-medium" style="color:var(--ink)">Hoje · 8 min</span><span class="text-[12px] font-bold" style="color:var(--brandink)">10/12 ✓</span></div>
+            <div class="flex items-center justify-between text-[14px]"><span class="font-medium" style="color:var(--ink)">Ontem · 10 min</span><span class="text-[12px] font-bold" style="color:var(--ink2)">8/12</span></div>
+            <div class="flex items-center justify-between text-[14px]"><span class="font-medium" style="color:var(--ink)">Segunda · 10 min</span><span class="text-[12px] font-bold" style="color:var(--ink2)">7/12</span></div>
+          </div>
+        </div>
+        <div class="card p-4 text-[13px] leading-relaxed text-center" style="color:var(--ink2)">
+          Sem ranking, sem comparação com ninguém.<br>O comparativo é com <b style="color:var(--ink)">você de ontem</b>.
+        </div>
+      </div>
+      <nav class="bnav">
+        <button onclick="MM.go('H00')"><span data-ic="house" data-ics="22"></span>Início</button>
+        <button onclick="MM.go('T00')"><span data-ic="chat" data-ics="22"></span>Tutor</button>
+        <button class="on" onclick="MM.go('H01')"><span data-ic="chart" data-ics="22"></span>Progresso</button>
+      </nav>
+    </section>
+
+    <!-- ============ T00 TUTOR ENTRADA ============ -->
+    <section class="scr" id="scr-T00">
+      <div class="px-5 pt-12 pb-2">
+        <h1 class="font-disp font-extrabold text-[26px]" style="color:var(--ink)">Tutor 💬</h1>
+        <p class="text-[14px] mt-1" style="color:var(--ink2)">Pergunta de boa. Ele responde com base no que você enviou.</p>
+      </div>
+      <div class="px-5 flex flex-col gap-4 pb-28">
+        <div>
+          <div class="lbl">Falar sobre</div>
+          <div class="flex flex-wrap gap-2">
+            <button class="chip on" onclick="MM.selChip(this)">Tudo que enviei</button>
+            <button class="chip" onclick="MM.selChip(this)">Prova de Física</button>
+            <button class="chip" onclick="MM.selChip(this)">MRU</button>
+            <button class="chip" onclick="MM.selChip(this)">Lista_MRU.pdf</button>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2.5">
+          <div class="card p-4 flex items-center gap-3 cursor-pointer" onclick="MM.go('T01')">
+            <span class="text-[20px]">🧮</span>
+            <span class="text-[14px] font-medium flex-1" style="color:var(--ink)">Me explica velocidade média com exemplo do meu material</span>
+          </div>
+          <div class="card p-4 flex items-center gap-3 cursor-pointer" onclick="MM.go('T01')">
+            <span class="text-[20px]">📉</span>
+            <span class="text-[14px] font-medium flex-1" style="color:var(--ink)">O que muda de MRU pra MRUV?</span>
+          </div>
+          <div class="card p-4 flex items-center gap-3 cursor-pointer" onclick="MM.go('T01')">
+            <span class="text-[20px]">🎯</span>
+            <span class="text-[14px] font-medium flex-1" style="color:var(--ink)">O que eu mais erro essa semana?</span>
+          </div>
+        </div>
+        <div class="card p-4 flex items-center gap-3" style="background:transparent; border:1.5px dashed var(--line); box-shadow:none">
+          <span style="color:var(--mut)"><span data-ic="mic" data-ics="20"></span></span>
+          <span class="text-[13px]" style="color:var(--ink2)">Prefere falar? Abre a conversa e toca no microfone.</span>
+        </div>
+      </div>
+      <nav class="bnav">
+        <button onclick="MM.go('H00')"><span data-ic="house" data-ics="22"></span>Início</button>
+        <button class="on" onclick="MM.go('T00')"><span data-ic="chat" data-ics="22"></span>Tutor</button>
+        <button onclick="MM.go('H01')"><span data-ic="chart" data-ics="22"></span>Progresso</button>
+      </nav>
+    </section>
+
+    <!-- ============ T01 CONVERSA DO TUTOR ============ -->
+    <section class="scr" id="scr-T01">
+      <div class="px-5 pt-12 pb-3 flex items-center gap-3">
+        <button class="iconbtn" onclick="MM.go('T00')"><span data-ic="back" data-ics="20"></span></button>
+        <div class="flex-1">
+          <div class="font-disp font-extrabold text-[18px]" style="color:var(--ink)">Chat do Tutor</div>
+        </div>
+        <span class="chip on">Prova de Física</span>
+      </div>
+      <div class="px-5 flex flex-col gap-3 pb-40 pt-1">
+        <div class="self-end max-w-[85%] rounded-2xl rounded-br-md px-4 py-3 text-[14px] leading-relaxed font-medium"
+             style="background:var(--brand); color:#131F24">O que muda de MRU pra MRUV?</div>
+        <div class="max-w-[92%] rounded-2xl rounded-bl-md px-4 py-3 text-[14px] leading-relaxed"
+             style="background:var(--salt); color:var(--ink)">
+          No <b>MRU</b> a velocidade <b>não muda</b> — o corpo anda sempre no mesmo ritmo. No <b>MRUV</b> entra aceleração: a velocidade cresce (ou cai) num ritmo constante.
+          <div class="flex flex-wrap gap-1.5 mt-2.5">
+            <button class="chip chip-info" onclick="MM.openSource()"><span data-ic="file" data-ics="13"></span>&nbsp;Ver fonte · Lista MRU p. 1</button>
+            <button class="chip chip-info" onclick="MM.openSource()"><span data-ic="music" data-ics="13"></span>&nbsp;Ver fonte · Aula 02:31</button>
+          </div>
+        </div>
+        <div class="max-w-[92%] rounded-2xl rounded-bl-md px-4 py-3 text-[14px] leading-relaxed"
+             style="background:var(--salt); color:var(--ink)">
+          <span class="chip chip-warn" style="margin-bottom:8px">Além do seu material</span>
+          <div>Na vida real, quase nada anda em MRU perfeito — até um carro na estrada acelera e freia. Por isso o MRUV aparece tanto em prova.</div>
+        </div>
+        <button class="self-start chip" style="color:var(--brandink)" onclick="MM.toast('Card criado ✓ Entra na sua próxima sessão.')">＋ Criar card disso</button>
+      </div>
+      <div class="sticky bottom-0 left-0 right-0 px-4 pb-5 pt-3 flex items-center gap-2 mt-auto"
+           style="background:linear-gradient(180deg, transparent, var(--canvas) 35%)">
+        <input class="inp flex-1" placeholder="Pergunta de boa…">
+        <button class="micbtn shrink-0" onclick="MM.toast('Fala aí. Pode perguntar do seu jeito.')"><span data-ic="mic" data-ics="24"></span></button>
+      </div>
+    </section>
+
+    <!-- ============ E00 CONCLUIR PROVA ============ -->
+    <section class="scr" id="scr-E00">
+      <div class="px-5 pt-16 flex flex-col items-center text-center">
+        <div class="text-[52px] mb-3">🤞</div>
+        <h1 class="font-disp font-extrabold text-[26px] leading-tight mb-2" style="color:var(--ink)">Como foi a prova?</h1>
+        <p class="text-[15px] leading-relaxed mb-8 max-w-[280px]" style="color:var(--ink2)">Sem nota certa ou errada aqui. É só pra gente ajustar o que vem depois.</p>
+        <div class="flex gap-2.5 mb-6" id="e00-stars">
+          <button class="starsel" onclick="MM.rate(1)">1</button>
+          <button class="starsel" onclick="MM.rate(2)">2</button>
+          <button class="starsel" onclick="MM.rate(3)">3</button>
+          <button class="starsel" onclick="MM.rate(4)">4</button>
+          <button class="starsel" onclick="MM.rate(5)">5</button>
+        </div>
+        <div class="text-[14px] font-semibold mb-10 h-5" id="e00-line" style="color:var(--brandink)"></div>
+        <div class="w-full px-1 flex flex-col gap-3">
+          <button class="btn btn-p w-full" onclick="MM.go('W00')">Concluir prova</button>
+          <button class="text-[13px] font-semibold" style="color:var(--mut); background:none; border:none; cursor:pointer" onclick="MM.go('H00')">Ainda tô esperando o resultado</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ W00 PAYWALL ============ -->
+    <section class="scr" id="scr-W00">
+      <div class="px-5 pt-14 flex flex-col items-center text-center">
+        <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 text-[36px]"
+             style="background:var(--brandsoft); box-shadow:0 0 0 10px rgba(74,229,74,.06)">✓</div>
+        <h1 class="font-disp font-extrabold text-[26px] leading-tight mb-2" style="color:var(--ink)">Sua primeira prova<br>tá salva ✓</h1>
+        <p class="text-[15px] leading-relaxed mb-5 max-w-[300px]" style="color:var(--ink2)">Você pode continuar revisando ela pra sempre. Pra criar a <b style="color:var(--ink)">próxima prova</b>, o Meu Modo pede um responsável.</p>
+        <div class="card p-4 w-full mb-6">
+          <div class="grid grid-cols-3 text-center">
+            <div><div class="font-disp font-black text-[24px]" style="color:var(--brandink)">4</div><div class="text-[11px] font-semibold mt-0.5" style="color:var(--ink2)">sessões</div></div>
+            <div><div class="font-disp font-black text-[24px]" style="color:var(--brandink)">3</div><div class="text-[11px] font-semibold mt-0.5" style="color:var(--ink2)">temas</div></div>
+            <div><div class="font-disp font-black text-[24px]" style="color:var(--brandink)">12</div><div class="text-[11px] font-semibold mt-0.5" style="color:var(--ink2)">revisões</div></div>
+          </div>
+        </div>
+        <div class="w-full flex flex-col gap-3">
+          <button class="btn btn-p w-full" onclick="MM.go('W01')">Mandar pro responsável</button>
+          <button class="btn btn-g w-full" onclick="MM.go('H00')">Continuar revisando</button>
+          <div class="text-[12px] mt-1" style="color:var(--mut)">Sem cobrança automática. O responsável decide.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ W01 LINK RESPONSÁVEL ============ -->
+    <section class="scr" id="scr-W01">
+      <div class="px-5 pt-12 pb-3 flex items-center gap-3">
+        <button class="iconbtn" onclick="MM.go('W00')"><span data-ic="back" data-ics="20"></span></button>
+        <h1 class="font-disp font-extrabold text-[20px] flex-1" style="color:var(--ink)">Chama um responsável 💌</h1>
+      </div>
+      <div class="px-5 flex flex-col gap-4 pb-10">
+        <p class="text-[14px] leading-relaxed" style="color:var(--ink2)">A gente manda um resumo do seu esforço. Olha o que entra e o que <b style="color:var(--ink)">não</b> entra:</p>
+        <div class="card p-4 flex flex-col gap-2.5">
+          <div class="flex items-center gap-2.5 text-[14px]"><span class="font-black" style="color:var(--brandink)">✓</span><span style="color:var(--ink)">Suas sessões e tempo de estudo</span></div>
+          <div class="flex items-center gap-2.5 text-[14px]"><span class="font-black" style="color:var(--brandink)">✓</span><span style="color:var(--ink)">Temas que você praticou</span></div>
+          <div class="flex items-center gap-2.5 text-[14px]"><span class="font-black" style="color:var(--brandink)">✓</span><span style="color:var(--ink)">Revisões feitas</span></div>
+          <div class="my-1" style="height:1px; background:var(--line)"></div>
+          <div class="flex items-center gap-2.5 text-[14px]"><span class="font-black" style="color:var(--mut)">✗</span><span style="color:var(--ink2)">Suas respostas e erros</span></div>
+          <div class="flex items-center gap-2.5 text-[14px]"><span class="font-black" style="color:var(--mut)">✗</span><span style="color:var(--ink2)">Seus materiais</span></div>
+          <div class="flex items-center gap-2.5 text-[14px]"><span class="font-black" style="color:var(--mut)">✗</span><span style="color:var(--ink2)">Qualquer diagnóstico</span></div>
+        </div>
+        <div class="flex flex-col gap-3 mt-2">
+          <button class="btn btn-w w-full" onclick="MM.go('R00')">Mandar no WhatsApp</button>
+          <button class="btn btn-g w-full" onclick="MM.toast('Link copiado ✓')">Copiar link</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ R00 PÁGINA DO RESPONSÁVEL (clara) ============ -->
+    <section class="scr light" id="scr-R00">
+      <div class="px-5 pt-12 pb-4">
+        <div class="text-[11px] font-bold tracking-[.14em] uppercase mb-2" style="color:#7A8A90">Convite privado</div>
+        <h1 class="font-disp font-extrabold text-[26px] leading-tight" style="color:#171717">Ana te convidou<br>pro Meu Modo 💚</h1>
+      </div>
+      <div class="px-5 flex flex-col gap-4 pb-10">
+        <div class="lcard p-4">
+          <div class="text-[12px] font-bold uppercase tracking-wide mb-2" style="color:#7A8A90">Resumo da semana</div>
+          <p class="text-[15px] leading-relaxed" style="color:var(--ink2)">Ana estudou <b>4 vezes</b> pra prova de Física, praticou <b>3 temas</b> e fez <b>12 revisões</b>. A prova é sexta-feira.</p>
+        </div>
+        <div class="lcard p-4 grid grid-cols-2 gap-3">
+          <div>
+            <div class="text-[12px] font-bold uppercase tracking-wide mb-2" style="color:#3E8E3E">Você vê</div>
+            <div class="text-[13px] leading-relaxed" style="color:var(--ink2)">Sessões<br>Temas praticados<br>Revisões feitas</div>
+          </div>
+          <div>
+            <div class="text-[12px] font-bold uppercase tracking-wide mb-2" style="color:#9AA5AA">Não vê</div>
+            <div class="text-[13px] leading-relaxed" style="color:#9AA5AA">Respostas e erros<br>Materiais<br>Diagnósticos</div>
+          </div>
+        </div>
+        <div class="lcard p-4" style="border-color:#4AE54A">
+          <div class="flex items-baseline justify-between mb-1">
+            <span class="font-disp font-extrabold text-[17px]" style="color:#171717">Meu Modo Família</span>
+            <span class="font-disp font-black text-[20px]" style="color:#3E8E3E">R$ 39,90<span class="text-[12px] font-bold" style="color:#7A8A90">/mês</span></span>
+          </div>
+          <p class="text-[13px] leading-relaxed mb-4" style="color:var(--ink2)">Provas ilimitadas, prática gerada do material da escola e revisões na medida. Cancele quando quiser.</p>
+          <button class="btn btn-ink w-full" onclick="MM.toast('Tudo certo ✓ A Ana já pode criar a próxima prova.')">Liberar pra Ana</button>
+          <div class="text-[11px] text-center mt-3" style="color:#9AA5AA">Pagamento seguro · Sem cobrança sem sua confirmação</div>
+        </div>
+        <p class="text-[12px] text-center leading-relaxed" style="color:#9AA5AA">Este convite é privado e só mostra o resumo acima.<br>Dúvidas? Fala com a gente: oi@meumodo.app</p>
+      </div>
+    </section>
+
+    <!-- ============ X00 · COMPARTILHAR (Modo Card) ============ -->
+    <section class="scr" id="scr-X00">
+      <div class="px-5 pt-12 pb-3 flex items-center gap-3">
+        <button class="iconbtn" onclick="MM.closeShare()" data-ic="back" data-ics="20" aria-label="Voltar"></button>
+        <div class="flex-1">
+          <div class="font-disp font-extrabold text-[19px]" style="color:var(--ink)">Compartilhar</div>
+          <div class="text-[12px]" style="color:var(--ink2)">Você escolhe o que aparece.</div>
+        </div>
+      </div>
+
+      <div class="scr-scroll noscroll px-5 pb-4">
+        <!-- card preview -->
+        <div class="flex justify-center pt-1">
+          <div class="mcard" id="x-card">
+            <div class="mc-head">
+              <span class="mc-logo">mm</span><span class="mc-wm">meu modo</span>
+            </div>
+            <div class="mc-stage" id="x-stage"></div>
+            <div class="mc-foot">
+              <span class="mc-tag" id="x-tag">Física · Cinemática</span>
+              <span class="mc-cta">meumodo.app</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- video transport -->
+        <div class="vidwrap flex items-center gap-3 mt-3 px-1" id="x-transport">
+          <button class="iconbtn" style="width:38px;height:38px" id="x-play" onclick="MM.togglePlay()" data-ic="pause" data-ics="16" aria-label="Pausar prévia"></button>
+          <div class="vidbar flex-1"><i></i></div>
+          <span class="font-mono text-[11px]" style="color:var(--mut)">0:05</span>
+        </div>
+
+        <!-- format -->
+        <div class="lbl mt-5 mb-2.5">Formato</div>
+        <div class="fmtseg" id="x-fmt">
+          <button class="on" onclick="MM.setFmt(this,'video')">Vídeo 9:16</button>
+          <button onclick="MM.setFmt(this,'img')">Imagem</button>
+          <button onclick="MM.setFmt(this,'sq')">Quadrado</button>
+        </div>
+
+        <!-- variant -->
+        <div class="lbl mt-5 mb-2.5">O que mostrar</div>
+        <div class="flex flex-wrap gap-2" id="x-var">
+          <button class="chip on" onclick="MM.setVariant(this,'transformacao')">Meu material virou prática</button>
+          <button class="chip" onclick="MM.setVariant(this,'sessao')">Sessão de hoje</button>
+          <button class="chip" onclick="MM.setVariant(this,'constancia')">Minha semana</button>
+        </div>
+
+        <!-- transparency -->
+        <div class="card p-4 mt-6 flex flex-col gap-2.5">
+          <div class="lbl" style="margin:0">No card</div>
+          <div class="flex items-center gap-2.5 text-[13.5px]"><span class="font-black" style="color:var(--brandink)">✓</span><span style="color:var(--ink)">Tempo, temas e quantidade</span></div>
+          <div class="flex items-center gap-2.5 text-[13.5px]"><span class="font-black" style="color:var(--brandink)">✓</span><span style="color:var(--ink)">Seu primeiro nome, se você quiser</span></div>
+          <div class="my-1" style="height:1px; background:var(--line)"></div>
+          <div class="flex items-center gap-2.5 text-[13.5px]"><span class="font-black" style="color:var(--mut)">✗</span><span style="color:var(--ink2)">Suas respostas e erros</span></div>
+          <div class="flex items-center gap-2.5 text-[13.5px]"><span class="font-black" style="color:var(--mut)">✗</span><span style="color:var(--ink2)">O conteúdo do seu material</span></div>
+          <div class="flex items-center gap-2.5 text-[13.5px]"><span class="font-black" style="color:var(--mut)">✗</span><span style="color:var(--ink2)">Sua escola e sua nota</span></div>
+        </div>
+
+        <label class="card-b p-4 mt-3 flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="x-name" onchange="MM.renderModoCard()" style="width:20px;height:20px;accent-color:var(--brandink)">
+          <span class="text-[13.5px]" style="color:var(--ink2)">Mostrar meu nome no card</span>
+        </label>
+      </div>
+
+      <!-- destinations -->
+      <div class="px-5 pb-11 pt-4" style="border-top:1.5px solid var(--line); background:var(--surface)">
+        <div class="flex items-start justify-between gap-1">
+          <button class="dest wa" onclick="MM.share('WhatsApp')"><span class="dic" data-ic="wa" data-ics="26"></span>WhatsApp</button>
+          <button class="dest" onclick="MM.share('Stories')"><span class="dic" data-ic="ig" data-ics="24"></span>Stories</button>
+          <button class="dest" onclick="MM.share('TikTok')"><span class="dic" data-ic="note" data-ics="24"></span>TikTok</button>
+          <button class="dest" onclick="MM.share('Galeria')"><span class="dic" data-ic="down" data-ics="24"></span>Salvar</button>
+          <button class="dest" onclick="MM.share('Link')"><span class="dic" data-ic="link" data-ics="22"></span>Link</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- current screen label -->
+<div id="scrname" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 text-[11px] font-mono px-3.5 py-1.5 rounded-full" style="color:#8FA1A9; background:rgba(14,20,24,.72); border:1px solid #232d33; backdrop-filter:blur(6px)"></div>
+
+<script>
+/* ============ ICONS (Phosphor-style, 2px stroke, rounded) ============ */
+const IC = {
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  chat:'<path d="M21 12a8 8 0 0 1-8 8H4l2-3.2A8 8 0 1 1 21 12z"/><path d="M9 11h.01M12.5 11h.01M16 11h.01"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
+  house:'<path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/>',
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  camera:'<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>',
+  image:'<rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 16l4.5-4 4 3.5L16 12l4 4"/>',
+  music:'<path d="M9 18V6l10-2v11"/><circle cx="7" cy="18" r="2.4"/><circle cx="17" cy="15" r="2.4"/>',
+  file:'<path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+  play:'<path d="M8 5.5v13l11-6.5z"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 1 3.6 10.8c-.6.5-.6 1.2-.6 2.2H9c0-1 0-1.7-.6-2.2A6 6 0 0 1 12 3z"/>',
+  spark:'<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',
+  up:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  checkbig:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  share:'<path d="M12 3v13M12 3L8 7M12 3l4 4"/><path d="M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/>',
+  pause:'<path d="M9 5v14M15 5v14"/>',
+  down:'<path d="M12 4v11M12 15l-4-4M12 15l4-4"/><path d="M5 19h14"/>',
+  link:'<path d="M10 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7L11.5 6.3"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.3-1.3"/>',
+  wa:'<path d="M3.5 20.5l1.3-4.6A8 8 0 1 1 8.2 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l.8-1.6-2-1-.9 1a5.6 5.6 0 0 1-1.8-1.8l1-.9-1-2z"/>',
+  ig:'<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><path d="M16.8 7.3h.01"/>',
+  note:'<path d="M9 18V6.5c3.2 0 5.5 1.4 6.6 4"/><circle cx="6.4" cy="18" r="2.6"/><path d="M15 6.2c.5 1.6 1.7 2.7 3.4 3"/>'
+};
+function svgIcon(name, size){
+  const s = size || 20;
+  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(IC[name]||'')+'</svg>';
+}
+function injectIcons(root){
+  (root||document).querySelectorAll('[data-ic]').forEach(el=>{
+    if(!el.dataset.done){ el.innerHTML = svgIcon(el.dataset.ic, el.dataset.ics?parseInt(el.dataset.ics):20); el.dataset.done='1'; }
+  });
+}
+
+/* ============ SCREEN REGISTRY ============ */
+const GROUPS = [
+  { label:'Abertura', ids:['P00','P01'] },
+  { label:'Criar prova', ids:['A00','A01','A02','A03','A04','A05','A06','A07','A08','A09'] },
+  { label:'Sessão', ids:['S','S01','S02','S03','S04','S05','S06'] },
+  { label:'Casa', ids:['H00','H01'] },
+  { label:'Tutor', ids:['T00','T01'] },
+  { label:'Compartilhar', ids:['X00'] },
+  { label:'Fechamento', ids:['E00','W00','W01','R00'] }
+];
+const NAMES = {
+  P00:'Landing', P01:'Idade e privacidade',
+  A00:'Home vazia', A01:'Nova prova', A02:'Adicionar material', A03:'Prévia da foto',
+  A04:'Gravar áudio', A05:'Materiais', A06:'Revisar OCR', A07:'Revisar transcrição',
+  A08:'Processando', A09:'Prática pronta',
+  S:'Questão', S01:'Pista', S02:'Feedback · acerto', S03:'Feedback · quase',
+  S04:'Tutor do card', S05:'Ver na fonte', S06:'Sessão completa',
+  H00:'Home ativa', H01:'Progresso', T00:'Tutor · entrada', T01:'Conversa do tutor',
+  X00:'Modo Card · compartilhar',
+  E00:'Concluir prova', W00:'Paywall', W01:'Link do responsável', R00:'Página do responsável'
+};
+const ORDER = GROUPS.flatMap(g=>g.ids);
+
+/* ============ ROUTER ============ */
+let cur = 'P00';
+const $ = s=>document.querySelector(s);
+function show(id){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  const target = id.startsWith('S') && id!=='S' ? 'S' : id;
+  const el = $('#scr-'+target);
+  if(el){ el.classList.add('on'); el.scrollTop = 0; }
+  cur = id;
+  const name = NAMES[id]||id;
+  $('#scrname').textContent = id+' · '+name;
+  document.querySelectorAll('.snav-item').forEach(b=>b.classList.toggle('on', b.dataset.sid===id));
+  if(id.startsWith('S')) sessionShow(id);
+  if(id==='X00'){ document.querySelectorAll('#x-var .chip').forEach(c=>
+    c.classList.toggle('on', c.getAttribute('onclick').includes("'"+shareVariant+"'"))); }
+}
+
+/* ============ SESSION ENGINE ============ */
+const CARDS = [
+  { type:'open', conceito:'Velocidade média',
+    q:'Um carro percorre 200 km em 4 horas. Qual a velocidade média dele?',
+    answer:'50', unit:'km/h',
+    steps:['v = ΔS / Δt','v = 200 km / 4 h','v = 50 km/h'],
+    fonte:'Lista MRU · p. 2', srcTitle:'Lista_MRU.pdf · p. 2',
+    hint:'Lembra da fórmula da velocidade média. Você tem a distância e o tempo — é só dividir um pelo outro.',
+    formula:'v = ΔS / Δt' },
+  { type:'mc', conceito:'MRU',
+    q:'No MRU — movimento retilíneo uniforme — a velocidade do corpo é…',
+    opts:['Constante','Crescente','Nula'], answer:'Constante',
+    steps:['MRU = sem aceleração','logo, v não muda'],
+    fonte:'Foto do quadro', srcTitle:'Foto do quadro · aula de terça',
+    hint:'MRU: o U é de uniforme. O que "uniforme" diz sobre a velocidade?',
+    formula:'v = constante' },
+  { type:'open', conceito:'Velocidade média',
+    q:'Um trem anda a 90 km/h durante 2 horas. Que distância ele percorre?',
+    answer:'180', unit:'km',
+    steps:['ΔS = v × Δt','ΔS = 90 × 2','ΔS = 180 km'],
+    fonte:'Lista MRU · p. 3', srcTitle:'Lista_MRU.pdf · p. 3',
+    hint:'Agora você tem velocidade e tempo, e quer a distância. Rearranja a fórmula.',
+    formula:'ΔS = v × Δt' }
+];
+const TUTOR_REPLIES = {
+  simples:'De boa. Velocidade média é só: <b>o quanto andou ÷ o tempo que levou</b>. Andou 200 km em 4 h? Divide: 200 ÷ 4 = 50 km/h.',
+  outro:'Pensa assim: se o carro faz 50 km/h, ele anda 50 km <b>a cada hora</b>. Em 4 horas: 50 + 50 + 50 + 50 = 200 km. Bate com o enunciado ✓',
+  exemplo:'Exemplo do seu material: uma bike que percorre 60 km em 3 horas tem velocidade média de 60 ÷ 3 = <b>20 km/h</b>.',
+  fonte:'Isso tá na <b>Lista MRU, página 2</b> — exercício 1, o mesmo dessa questão. Toca em "Fonte" aqui em cima pra ver o trecho marcado.',
+  parecida:'Manda: um ônibus percorre 300 km em 5 horas. Qual a velocidade média? (Responde aí embaixo que eu confiro.)'
+};
+let cardIx = 0, answered = false, recTimer = null, recSec = 83;
+
+function renderProgress(done, total){
+  const el = $('#s-prog');
+  if(!el) return;
+  el.innerHTML = Array.from({length:total}, (_,i)=>
+    '<i class="'+(i < done-1 ? 'done' : i === done-1 ? 'now' : '')+'"></i>').join('');
+  el.setAttribute('aria-valuenow', done);
+  el.setAttribute('aria-valuemin', 1);
+  el.setAttribute('aria-valuemax', total);
+}
+function renderCard(){
+  const c = CARDS[cardIx];
+  answered = false;
+  $('#s-count').textContent = (cardIx+3)+' de 12';
+  renderProgress(cardIx+3, 12);
+  const wrap = $('#s-question-wrap');
+  if(wrap){ wrap.classList.remove('cardenter'); void wrap.offsetWidth; wrap.classList.add('cardenter'); }
+  $('#s-conceito').textContent = c.conceito;
+  $('#s-question').textContent = c.q;
+  $('#s-fonte').innerHTML = svgIcon('file',13)+'&nbsp;Fonte: '+c.fonte;
+  $('#s-source-title').textContent = c.srcTitle;
+  $('#s-hint-text').textContent = c.hint;
+  $('#s-hint-formula').textContent = c.formula;
+  $('#s-q').style.display = 'flex';
+  $('#s-done').style.display = 'none';
+  if(c.type==='mc'){
+    $('#s-answer').innerHTML = '<div class="flex flex-col gap-2.5">'+c.opts.map(o=>
+      '<button class="qopt" data-opt="'+o+'" onclick="MM.pickMc(this)"><span class="w-6 h-6 rounded-full border-2 shrink-0" style="border-color:var(--line)"></span><span class="text-[15px] font-medium" style="color:var(--ink)">'+o+'</span></button>'
+    ).join('')+'</div>';
+  } else {
+    $('#s-answer').innerHTML =
+      '<div class="flex items-center gap-2"><input id="s-input" class="inp flex-1" placeholder="Sua resposta…" inputmode="numeric">'+
+      '<button class="micbtn shrink-0" onclick="MM.toast(\'Fala aí. Eu escrevo pra você.\')">'+svgIcon('mic',24)+'</button></div>';
+  }
+}
+function openSheet(id){
+  const l = $('#'+id);
+  l.classList.add('on');
+  const sheet = l.querySelector('.sheet');
+  requestAnimationFrame(()=> sheet.classList.add('up'));
+}
+function sessionShow(id){
+  closeAllLayers();
+  if(id==='S' || id==='S00'){ renderCard(); return; }
+  if(id==='S01'){ renderCard(); openSheet('s-hint'); return; }
+  if(id==='S02'){ renderCard(); feedback(true); return; }
+  if(id==='S03'){ renderCard(); feedback(false); return; }
+  if(id==='S04'){ renderCard(); openSheet('s-tutor'); return; }
+  if(id==='S05'){ renderCard(); openSheet('s-source'); return; }
+  if(id==='S06'){ finishSession(); return; }
+}
+function feedback(ok, skipped){
+  answered = true;
+  const c = CARDS[cardIx];
+  const sheet = $('#s-fb-sheet');
+  sheet.classList.toggle('ok', ok);
+  sheet.classList.toggle('almost', !ok);
+  let html;
+  if(ok){
+    html = '<div class="flex items-center gap-3 mb-3"><span class="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style="background:var(--brand); color:#131F24">'+svgIcon('checkbig',24)+'</span>'+
+      '<div class="font-disp font-extrabold text-[22px]" style="color:var(--ink)">Boa. '+c.answer+' '+(c.unit||'')+'</div></div>'+
+      '<div class="rounded-2xl p-3.5 mb-3 font-mono text-[14px] leading-loose" style="background:var(--salt); color:var(--ink)">'+c.steps.join('<br>')+'</div>'+
+      '<div class="flex flex-wrap gap-2 mb-4"><button class="chip chip-info" onclick="MM.openSource()">'+svgIcon('file',13)+'&nbsp;Ver na fonte</button>'+
+      '<button class="chip" onclick="MM.openTutor()">Explica de outro jeito</button></div>'+
+      '<button class="btn btn-p w-full" onclick="MM.nextCard()">Próximo</button>';
+  } else {
+    html = '<div class="font-disp font-extrabold text-[22px] mb-1" style="color:var(--ink)">Quase. Olha este passo.</div>'+
+      (skipped ? '<div class="text-[13px] mb-3" style="color:var(--ink2)">Sem problema pular — mas confere o caminho:</div>' : '')+
+      '<div class="rounded-2xl p-3.5 mb-3 font-mono text-[14px] leading-loose" style="background:var(--salt); color:var(--ink)">'+c.steps.join('<br>')+'</div>'+
+      '<div class="text-[14px] mb-4" style="color:var(--ink2)">Resposta certa: <b class="font-disp" style="color:var(--ink)">'+c.answer+' '+(c.unit||'')+'</b></div>'+
+      '<div class="flex flex-col gap-2.5"><button class="btn btn-p w-full" onclick="MM.nextCard()">Tentar uma parecida</button>'+
+      '<button class="btn btn-g w-full" onclick="MM.openTutor()">Ver explicação</button></div>';
+  }
+  $('#s-fb-body').innerHTML = html;
+  injectIcons($('#s-fb-body'));
+  openSheet('s-fb');
+}
+function nextCard(){
+  closeAllLayers();
+  cardIx++;
+  if(cardIx >= CARDS.length){ finishSession(); show('S06'); }
+  else { renderCard(); }
+}
+function finishSession(){
+  $('#s-q').style.display = 'none';
+  $('#s-done').style.display = 'flex';
+  closeAllLayers();
+}
+function closeAllLayers(){
+  document.querySelectorAll('.layer').forEach(l=>{
+    l.classList.remove('on');
+    const sh = l.querySelector('.sheet'); if(sh) sh.classList.remove('up');
+  });
+}
+
+/* ============ MODO CARD · outbound shareable artifact ============
+   No feed, no likes, no ranking, no follower count — nothing social lives
+   inside the app. The card is an export the student chooses to post
+   elsewhere. It never carries material content, answers or errors.
+   ================================================================ */
+let shareVariant = 'sessao', shareFmt = 'video', shareBack = 'H00';
+const STUDENT = 'Ana';
+
+const CARD_VARIANTS = {
+  transformacao: {
+    tag: 'Física · Cinemática',
+    stage: n =>
+      '<div class="mc-beat mc-eyebrow">'+(n?n+' mandou o material':'meu material virou prática')+'</div>'+
+      '<div class="mc-beat mc-paper"><b>Lista — MRU</b><br>1) Um carro percorre 200 km em 4 h…<br>2) Um trem a 90 km/h…<br>v = ΔS / Δt</div>'+
+      '<div class="mc-beat mc-arrow"><span aria-hidden="true">↓</span> virou</div>'+
+      '<div class="mc-beat"><div class="mc-big">12<br>questões</div>'+
+        '<div class="mc-sub" style="margin-top:7px">1 foto do caderno · 3 temas</div></div>'
+  },
+  sessao: {
+    tag: 'Física · Cinemática',
+    stage: n =>
+      '<div class="mc-beat mc-eyebrow">'+(n?'a sessão d'+(n==='Ana'?'a ':'e ')+n:'fechou por hoje')+'</div>'+
+      '<div class="mc-beat"><div class="mc-big">10 min</div>'+
+        '<div class="mc-sub" style="margin-top:7px">3 conceitos praticados</div></div>'+
+      '<div class="mc-beat mc-bars">'+
+        [['Velocidade média',85],['MRU',80],['Gráficos S×t',20]].map(([t,v])=>
+          '<span class="mc-bar"><span>'+t+'</span><i><b style="width:'+v+'%"></b></i></span>').join('')+
+      '</div>'
+  },
+  constancia: {
+    tag: 'Física · Cinemática',
+    stage: n =>
+      '<div class="mc-beat mc-eyebrow">'+(n?'a semana d'+(n==='Ana'?'a ':'e ')+n:'minha semana')+'</div>'+
+      '<div class="mc-beat"><div class="mc-big">4<br>sessões</div>'+
+        '<div class="mc-sub" style="margin-top:7px">12 revisões feitas</div></div>'+
+      '<div class="mc-beat mc-dots">'+
+        [1,1,0,1,1,0,0].map(o=>'<i class="'+(o?'on':'')+'"></i>').join('')+
+      '</div>'
+  }
+};
+
+function renderModoCard(){
+  const v = CARD_VARIANTS[shareVariant];
+  const showName = $('#x-name') && $('#x-name').checked;
+  $('#x-stage').innerHTML = v.stage(showName ? STUDENT : null);
+  $('#x-tag').textContent = v.tag;
+  const card = $('#x-card'), transport = $('#x-transport');
+  card.classList.toggle('sq', shareFmt === 'sq');
+  const isVideo = shareFmt === 'video';
+  card.classList.toggle('playing', isVideo);
+  transport.classList.toggle('playing', isVideo);
+  transport.style.display = isVideo ? 'flex' : 'none';
+}
+
+/* ============ MM API ============ */
+const MM = {
+  go(id){ show(id); },
+  selAge(el){ document.querySelectorAll('#scr-P01 .chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); },
+  selChip(el){ el.classList.toggle('on'); },
+  toast(msg){
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(t._h);
+    t._h = setTimeout(()=>t.classList.remove('on'), 2400);
+  },
+  /* A01 voice */
+  voiceFill(){
+    const mic = $('#a01-mic');
+    mic.classList.add('rec');
+    setTimeout(()=>{
+      mic.classList.remove('rec');
+      $('#a01-voicerow').style.display='none';
+      $('#a01-confirm').style.display='block';
+    }, 1400);
+  },
+  confirmVoice(){ MM.toast('Anotado ✓'); setTimeout(()=>MM.go('A02'), 500); },
+  cancelVoice(){ $('#a01-confirm').style.display='none'; $('#a01-voicerow').style.display='flex'; },
+  /* materials */
+  addMat(tipo){
+    MM.toast(tipo==='audio' ? 'Áudio adicionado ✓' : 'Material adicionado ✓');
+    setTimeout(()=>MM.go('A05'), 450);
+  },
+  /* A04 recording */
+  stopRec(){ if(recTimer){ clearInterval(recTimer); recTimer=null; } },
+  /* A08 processing */
+  startProcessing(){
+    MM.go('A08');
+    const steps = document.querySelectorAll('#a08-steps [data-step]');
+    steps.forEach(s=>{ s.classList.remove('done','run'); s.classList.add('opacity-40'); });
+    $('#a08-temas').style.display='none';
+    let i = 0;
+    function tick(){
+      if(i>0){ steps[i-1].classList.remove('run'); steps[i-1].classList.add('done'); }
+      if(i>=steps.length){ setTimeout(()=>MM.go('A09'), 600); return; }
+      steps[i].classList.add('run');
+      if(i===1){ $('#a08-temas').style.display='flex'; }
+      i++;
+      setTimeout(tick, 1100);
+    }
+    tick();
+  },
+  /* session */
+  startSession(){ cardIx = 0; show('S'); },
+  openHint(){ openSheet('s-hint'); },
+  openTutor(){ closeAllLayers(); openSheet('s-tutor'); },
+  openSource(){ closeAllLayers(); openSheet('s-source'); },
+  closeLayer(id){ const l=$('#'+id); l.classList.remove('on'); const sh=l.querySelector('.sheet'); if(sh) sh.classList.remove('up'); },
+  pickMc(el){
+    document.querySelectorAll('#s-answer .qopt').forEach(o=>o.classList.remove('on'));
+    el.classList.add('on');
+  },
+  answer(mode){
+    if(answered) return;
+    const c = CARDS[cardIx];
+    if(mode==='skip'){ feedback(false, true); return; }
+    let val = '';
+    if(c.type==='mc'){ const on = document.querySelector('#s-answer .qopt.on'); val = on ? on.dataset.opt : ''; }
+    else { const inp = $('#s-input'); val = inp ? inp.value.trim() : ''; }
+    if(!val){ MM.toast('Manda uma resposta — ou toca em "Não sei".'); return; }
+    const ok = c.type==='mc' ? val===c.answer : val.replace(',','.')===c.answer;
+    feedback(ok);
+  },
+  nextCard(){ nextCard(); },
+  tutorAsk(key){
+    const box = $('#s-tutor-msgs');
+    const q = { simples:'Explica mais simples', outro:'Explica de outro jeito', exemplo:'Me dá um exemplo', fonte:'Onde tá na fonte?', parecida:'Cria uma parecida' }[key] || key;
+    box.insertAdjacentHTML('beforeend',
+      '<div class="self-end max-w-[85%] rounded-2xl rounded-br-md px-4 py-3 text-[14px] font-medium" style="background:var(--brand); color:#131F24">'+q+'</div>'+
+      '<div class="max-w-[92%] rounded-2xl rounded-bl-md px-4 py-3 text-[14px] leading-relaxed" style="background:var(--salt); color:var(--ink)">'+(TUTOR_REPLIES[key]||'Boa pergunta. Me diz mais?')+'</div>');
+    box.scrollTop = box.scrollHeight;
+    if(key==='parecida' || key==='outro' || key==='simples'){ $('#s-tutor-micro').style.display='block'; }
+  },
+  tutorSend(){
+    const inp = $('#s-tutor-in');
+    const v = inp.value.trim();
+    if(!v) return;
+    inp.value='';
+    const box = $('#s-tutor-msgs');
+    box.insertAdjacentHTML('beforeend',
+      '<div class="self-end max-w-[85%] rounded-2xl rounded-br-md px-4 py-3 text-[14px] font-medium" style="background:var(--brand); color:#131F24">'+v.replace(/</g,'&lt;')+'</div>'+
+      '<div class="max-w-[92%] rounded-2xl rounded-bl-md px-4 py-3 text-[14px] leading-relaxed" style="background:var(--salt); color:var(--ink)">Boa. Pela sua lista, o caminho é sempre <b>distância ÷ tempo</b>. Tenta aplicar isso na questão — se travar, pede uma pista.</div>');
+    box.scrollTop = box.scrollHeight;
+    $('#s-tutor-micro').style.display='block';
+  },
+  microAnswer(){
+    const v = $('#s-micro-in').value.trim().replace(',','.');
+    if(v==='50'){ MM.toast('Isso! 50 km/h ✓ Pode voltar pra questão.'); $('#s-tutor-micro').style.display='none'; }
+    else MM.toast('Quase — lembra: distância ÷ tempo.');
+  },
+  /* E00 rating */
+  rate(n){
+    document.querySelectorAll('#e00-stars .starsel').forEach((b,i)=>b.classList.toggle('on', i<n));
+    const lines = { 1:'De boa. A gente ajusta o próximo plano juntos.', 2:'Faz parte. O que travou vira prática.', 3:'Ok! Dá pra subir isso na próxima.', 4:'Mandou bem! Bora manter o ritmo.', 5:'Voou 🎯 Orgulho de você.' };
+    $('#e00-line').textContent = lines[n]||'';
+  },
+  /* ---- Modo Card · share ---- */
+  openShare(variant){
+    shareBack = cur;
+    if(variant) shareVariant = variant;
+    document.querySelectorAll('#x-var .chip').forEach(c=>
+      c.classList.toggle('on', c.getAttribute('onclick').includes("'"+shareVariant+"'")));
+    show('X00');
+    renderModoCard();
+  },
+  closeShare(){ show(shareBack && shareBack!=='X00' ? shareBack : 'H00'); },
+  renderModoCard(){ renderModoCard(); },
+  setVariant(el, v){
+    shareVariant = v;
+    document.querySelectorAll('#x-var .chip').forEach(c=>c.classList.remove('on'));
+    el.classList.add('on');
+    renderModoCard();
+  },
+  setFmt(el, f){
+    shareFmt = f;
+    document.querySelectorAll('#x-fmt button').forEach(b=>b.classList.remove('on'));
+    el.classList.add('on');
+    renderModoCard();
+  },
+  togglePlay(){
+    const card = $('#x-card'), transport = $('#x-transport'), btn = $('#x-play');
+    const playing = card.classList.toggle('playing');
+    transport.classList.toggle('playing', playing);
+    btn.dataset.done = ''; btn.dataset.ic = playing ? 'pause' : 'play';
+    btn.setAttribute('aria-label', playing ? 'Pausar prévia' : 'Tocar prévia');
+    injectIcons(btn.parentElement);
+  },
+  share(dest){
+    const msg = {
+      WhatsApp:'Abrindo o WhatsApp com seu card ✓',
+      Stories:'Card salvo pro Stories ✓',
+      TikTok:'Vídeo exportado pro TikTok ✓',
+      Galeria:'Salvo na galeria ✓',
+      Link:'Link copiado ✓'
+    }[dest] || 'Compartilhado ✓';
+    MM.toast(msg);
+  }
+};
+window.MM = MM;
+
+/* ============ SIDEBAR ============ */
+function renderNav(){
+  const nav = $('#snav');
+  nav.innerHTML = GROUPS.map(g=>
+    '<div class="text-[10px] font-bold uppercase tracking-[.14em] px-3 mt-4 mb-1.5" style="color:#4A5A62">'+g.label+'</div>'+
+    g.ids.map(id=>'<button class="snav-item" data-sid="'+id+'" onclick="MM.go(\''+id+'\')"><span class="font-mono text-[10px] mr-2" style="color:#5C6B72">'+id+'</span>'+NAMES[id]+'</button>').join('')
+  ).join('');
+}
+
+/* ============ KEYBOARD + SWIPE ============ */
+document.addEventListener('keydown', e=>{
+  if(e.target.matches('input, textarea, [contenteditable]')) return;
+  const i = ORDER.indexOf(cur);
+  if(e.key==='ArrowRight'){ show(ORDER[Math.min(i+1, ORDER.length-1)]); }
+  if(e.key==='ArrowLeft'){ show(ORDER[Math.max(i-1, 0)]); }
+  if(e.key==='ArrowUp' && cur.startsWith('S')){ if(answered) nextCard(); }
+});
+let touchY = null;
+document.addEventListener('touchstart', e=>{ touchY = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchend', e=>{
+  if(touchY===null) return;
+  const dy = touchY - e.changedTouches[0].clientY;
+  if(dy > 70 && $('#s-fb').classList.contains('on')) nextCard();
+  touchY = null;
+}, {passive:true});
+document.addEventListener('wheel', e=>{
+  if(e.deltaY > 40 && $('#s-fb').classList.contains('on')){ nextCard(); }
+}, {passive:true});
+document.querySelectorAll('.layer').forEach(l=>{
+  l.addEventListener('click', e=>{ if(e.target===l) MM.closeLayer(l.id); });
+});
+
+/* ============ DEVICE SCALE ============ */
+function fit(){
+  const s = Math.min(1, (window.innerHeight-120)/900, (window.innerWidth-280)/440);
+  $('#scaler').style.transform = 'scale('+s+')';
+}
+window.addEventListener('resize', fit);
+
+/* ============ BOOT ============ */
+injectIcons();
+renderNav();
+fit();
+renderCard();
+renderModoCard();
+show('P00');
+/* wave bars */
+(function(){
+  const w = $('#a04-wave');
+  if(w){ for(let i=0;i<14;i++){ const b=document.createElement('i'); b.style.animationDelay=(Math.random()*.8)+'s'; b.style.animationDuration=(0.7+Math.random()*.6)+'s'; w.appendChild(b); } }
+  recTimer = setInterval(()=>{
+    if(!$('#scr-A04').classList.contains('on')) return;
+    recSec++;
+    const m = String(Math.floor(recSec/60)).padStart(2,'0'), s = String(recSec%60).padStart(2,'0');
+    const t = $('#a04-timer'); if(t) t.textContent = m+':'+s;
+  }, 1000);
+})();
+</script>
+</body>
+</html>

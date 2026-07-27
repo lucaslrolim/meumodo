@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$description": "Meu Modo canonical brand tokens — single source of truth",
+
+  "brandName": "Meu Modo",
+  "brandNameRules": {
+    "case": "sentence case",
+    "wordmark": "Meu Modo",
+    "never": ["meumodo", "MEU MODO", "MeuModo", "meu modo"]
+  },
+
+  "colors": {
+    "dark": {
+      "bg":          "#131F24",
+      "bg-card":     "#1A2B32",
+      "bg-card-alt": "#233138",
+      "text-primary":   "#F7F7F7",
+      "text-secondary": "#A3A3A3",
+      "text-muted":     "#7A8A90",
+      "border":         "#3C4D55"
+    },
+    "light": {
+      "bg":          "#FAFAF8",
+      "text-primary":   "#171717",
+      "text-secondary": "#737373",
+      "border":         "#E5E5E5"
+    },
+    "accent": {
+      "primary":       "#4AE54A",
+      "primary-hover": "#3CC53C",
+      "primary-soft":  "rgba(74,229,74,0.12)",
+      "primary-glow":  "rgba(74,229,74,0.25)",
+      "heart":         "#FF2D55",
+      "heart-soft":    "rgba(255,45,85,0.12)"
+    },
+    "semantic": {
+      "success": "#4AE54A",
+      "warning": "#FFD60A",
+      "error":   "#FF453A",
+      "info":    "#64D2FF"
+    },
+    "gamification": {
+      "xp-gold":       "#FFD700",
+      "streak-fire":   "#FF6B35",
+      "mastery-purple":"#BF5AF2",
+      "gem-blue":      "#64D2FF"
+    }
+  },
+
+  "cssTokens": {
+    "dark": {
+      "--bg":             "195 30% 11%",
+      "--bg-card":        "198 32% 15%",
+      "--bg-card-alt":    "200 23% 18%",
+      "--text-primary":   "0 0% 97%",
+      "--text-secondary": "0 0% 64%",
+      "--text-muted":     "195 10% 52%",
+      "--border":         "198 17% 28%",
+      "--accent":         "120 68% 59%",
+      "--accent-hover":   "120 56% 50%",
+      "--accent-soft":    "120 68% 59% / 0.12",
+      "--heart":          "348 100% 58%",
+      "--xp-gold":        "51 100% 50%",
+      "--streak-fire":    "18 100% 60%",
+      "--mastery-purple": "280 87% 65%",
+      "--radius":         "999px",
+      "--radius-card":    "16px",
+      "--radius-slot":    "12px"
+    }
+  },
+
+  "fonts": {
+    "display": "'Nunito', -apple-system, BlinkMacSystemFont, sans-serif",
+    "body":    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "mono":    "'JetBrains Mono', Menlo, Courier, monospace"
+  },
+
+  "fontWeights": {
+    "regular":  400,
+    "medium":   500,
+    "semibold": 600,
+    "bold":     700,
+    "extrabold":800
+  },
+
+  "typography": {
+    "roles": {
+      "display":  { "family": "Nunito", "weight": "700-800", "use": "hero, celebrações, +10 XP" },
+      "headline": { "family": "Nunito", "weight": "600-700", "use": "títulos de seção, card titles" },
+      "body":     { "family": "Inter",  "weight": "400-500", "use": "texto corrido, perguntas, inputs" },
+      "eyebrow":  { "family": "Inter",  "weight": "600", "tracking": "0.12em", "use": "labels acima de seções" },
+      "mono":     { "family": "JetBrains Mono", "weight": "400", "use": "equações, fórmulas" }
+    },
+    "scale": {
+      "xs":   "0.69rem",
+      "sm":   "0.83rem",
+      "base": "1rem",
+      "md":   "1.2rem",
+      "lg":   "1.44rem",
+      "xl":   "1.73rem",
+      "2xl":  "2.07rem",
+      "3xl":  "2.49rem",
+      "4xl":  "3rem"
+    }
+  },
+
+  "spacing": {
+    "xs":  "4px",
+    "sm":  "8px",
+    "md":  "16px",
+    "lg":  "24px",
+    "xl":  "32px",
+    "2xl": "48px"
+  },
+
+  "radius": {
+    "full": "999px",
+    "card": "16px",
+    "slot": "12px",
+    "chip": "999px"
+  },
+
+  "motion": {
+    "pop":      { "transform": "scale(0.3) → scale(1.4) → scale(1)", "opacity": "1 → 0", "duration": "1.8s", "easing": "ease-out" },
+    "swipe":    { "transform": "translateX", "duration": "300ms", "easing": "ease-out" },
+    "like":     { "transform": "scale(1) → scale(1.25) → scale(1)", "duration": "200ms" },
+    "voice":    { "boxShadow": "0 0 0 0 → 0 0 0 12px transparent", "duration": "1s", "loop": true },
+    "progress": { "width": "transition", "duration": "600ms", "easing": "ease-out" },
+    "reveal":   { "opacity": "0 → 1", "y": "8px → 0", "duration": "300ms", "easing": "ease-out" }
+  },
+
+  "haptics": {
+    "acerto":   "light + ding",
+    "erro":     "heavy + buzz",
+    "like":     "soft",
+    "streak":   "success triple + celebration",
+    "complete": "success triple + confetti"
+  },
+
+  "layout": {
+    "viewport":  "375×812",
+    "padding":   "16px",
+    "safeTop":   "20px",
+    "safeBottom":"20px",
+    "orientation": "portrait only"
+  }
+}

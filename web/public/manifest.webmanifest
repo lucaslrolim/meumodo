@@ -1,0 +1,16 @@
+{
+  "name": "Meu Modo",
+  "short_name": "Meu Modo",
+  "description": "Seu material vira prática pra sua prova.",
+  "start_url": "/inicio",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fafaf8",
+  "theme_color": "#fafaf8",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

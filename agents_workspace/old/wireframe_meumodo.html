@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Modo — Wireframe v3</title>
+<script type="module" src="https://unpkg.com/wired-elements?module"></script>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Patrick Hand',cursive;
+    background:#e8e5df;
+    display:flex;justify-content:center;align-items:center;
+    min-height:100vh;padding:20px;
+  }
+  .phone{
+    width:375px;height:750px;
+    background:#fafaf8;
+    background-image:radial-gradient(#d7d7d7 1px,transparent 1px);
+    background-size:20px 20px;
+    border:3px solid #333;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    overflow:hidden;position:relative;
+    display:flex;flex-direction:column;
+    box-shadow:4px 6px 0 #999;
+  }
+  .screen{display:none;flex-direction:column;height:100%;overflow-y:auto;padding:16px}
+  .screen.active{display:flex}
+  
+  .text-xs{font-size:11px;line-height:1.4}
+  .text-sm{font-size:14px;line-height:1.5}
+  .text-base{font-size:16px;line-height:1.5}
+  .text-md{font-size:20px;line-height:1.3}
+  .text-lg{font-size:26px;line-height:1.2}
+  .muted{color:#999}
+  .center{text-align:center}
+  .spacer{flex:1}
+  .mt-4{margin-top:4px}.mt-8{margin-top:8px}.mt-12{margin-top:12px}
+  .mt-16{margin-top:16px}.mt-24{margin-top:24px}
+  .mb-4{margin-bottom:4px}.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}
+  .mb-16{margin-bottom:16px}.mb-24{margin-bottom:24px}
+  
+  .btn-primary{
+    background:#333;color:#fff;
+    border:2px solid #333;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    font-family:'Patrick Hand',cursive;font-size:16px;
+    padding:13px 28px;cursor:pointer;width:100%;text-align:center;display:block;
+  }
+  .btn-secondary{
+    background:#fff;color:#333;
+    border:2px solid #333;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    font-family:'Patrick Hand',cursive;font-size:14px;
+    padding:10px 20px;cursor:pointer;width:100%;text-align:center;display:block;
+  }
+  .btn-sm{font-size:12px;padding:7px 14px;width:auto}
+  
+  .card{
+    border:2px solid #333;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    background:#fff;padding:14px;margin-bottom:10px;
+  }
+  .card-dark{background:#333;color:#fff}
+  
+  .status-bar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding-bottom:8px;border-bottom:2px dashed #ccc;margin-bottom:10px;
+  }
+  
+  /* TikTok-style video cards carousel */
+  .video-carousel{
+    display:flex;gap:10px;overflow-x:auto;
+    padding:2px 0 10px;margin-bottom:12px;
+    scroll-snap-type:x mandatory;
+  }
+  .video-card{
+    min-width:140px;height:180px;
+    border:2px solid #333;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    background:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    cursor:pointer;scroll-snap-align:start;
+    position:relative;overflow:hidden;
+    background-size:cover;
+    background-position:center;
+  }
+  .video-card .overlay{
+    position:absolute;bottom:0;left:0;right:0;
+    background:rgba(255,255,255,.92);
+    padding:10px 12px;
+    text-align:center;
+  }
+  .video-play{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:32px;z-index:2;
+  }
+  
+  /* Side buttons (only on answer) */
+  .side-buttons{
+    position:absolute;right:8px;bottom:140px;
+    display:flex;flex-direction:column;align-items:center;gap:14px;
+  }
+  .side-btn{
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:none;border:none;cursor:pointer;
+    font-family:'Patrick Hand',cursive;font-size:10px;color:#333;
+  }
+  .side-btn .icon{
+    width:36px;height:36px;
+    border:2px solid #333;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:17px;
+  }
+  .side-btn .icon.liked{background:#333;color:#fff}
+  
+  /* Gamification pop */
+  .points-pop{
+    position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);
+    font-size:44px;font-weight:bold;color:#333;
+    animation:popUp 1.8s forwards;
+    pointer-events:none;z-index:10;
+  }
+  @keyframes popUp{
+    0%{opacity:1;transform:translate(-50%,-50%) scale(0.3)}
+    40%{opacity:1;transform:translate(-50%,-80%) scale(1.4)}
+    100%{opacity:0;transform:translate(-50%,-130%) scale(1)}
+  }
+  
+  .swipe-card{
+    flex:1;display:flex;flex-direction:column;justify-content:center;
+    border:2px solid #333;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    background:#fff;padding:20px 14px;margin:6px 0;position:relative;
+    min-height:240px;
+  }
+  
+  .progress-wrapper{margin:6px 0}
+  wired-progress{width:100%}
+  
+  .stars{display:flex;gap:10px;justify-content:center;margin:16px 0}
+  .star-btn{font-size:38px;background:none;border:none;font-family:'Patrick Hand',cursive;cursor:pointer;color:#ddd;padding:0;line-height:1}
+  .star-btn.active{color:#333}
+  
+  .upload-slots{display:flex;gap:6px;margin:10px 0}
+  .upload-slot{
+    flex:1;aspect-ratio:3/4;
+    border:2px dashed #999;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    background:#fff;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:24px;color:#999;flex-direction:column;gap:2px;
+  }
+  .upload-slot.filled{border-style:solid;border-color:#333;background:#f0f0f0;color:#333}
+  
+  .voice-btn{
+    width:52px;height:52px;
+    border:2px solid #333;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    background:#fff;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;flex-shrink:0;
+  }
+  .voice-btn.recording{background:#333;color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  
+  /* Bottom action row (question view) */
+  .bottom-actions{
+    display:flex;gap:8px;padding:8px 0;
+  }
+  
+  /* Swipe hint */
+  .swipe-hint{text-align:center;color:#bbb}
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <!-- ===== HOME (v3 — TikTok video cards) ===== -->
+  <div class="screen active" id="home">
+    <div class="status-bar">
+      <span class="text-xs muted">9:41</span>
+      <span class="text-sm">Meu Modo</span>
+      <span class="text-xs">⚡</span>
+    </div>
+    
+    <!-- Story circles (students) -->
+    <div class="story-row">
+      <div class="story-circle" onclick="alert('Story: Lucas mandou bem em Cinemática!')">
+        <div class="story-ring live">🎯</div>
+        <span class="text-xs">Lucas</span>
+      </div>
+      <div class="story-circle" onclick="alert('Story: Bia dominou 8 conceitos de Física!')">
+        <div class="story-ring">📚</div>
+        <span class="text-xs">Bia</span>
+      </div>
+      <div class="story-circle" onclick="alert('Story: Pedro estudou MRU em 10 min!')">
+        <div class="story-ring">🚀</div>
+        <span class="text-xs">Pedro</span>
+      </div>
+      <div class="story-circle" onclick="alert('Story: Ju acertou 12 cards seguidos!')">
+        <div class="story-ring">🔥</div>
+        <span class="text-xs">Ju</span>
+      </div>
+      <div class="story-circle" onclick="alert('Story: Rafa usou áudio pra estudar!')">
+        <div class="story-ring">🎙️</div>
+        <span class="text-xs">Rafa</span>
+      </div>
+    </div>
+    
+    <!-- TikTok-style video card carousel -->
+    <div class="video-carousel">
+      <div class="video-card" style="background:#e8e0d5" onclick="alert('Como funciona: tire foto do slide e veja virar exercício!')">
+        <div class="video-play">▶</div>
+        <div class="overlay">
+          <div class="text-sm">📸→⚡</div>
+          <div class="text-xs muted">slide vira exercício</div>
+        </div>
+      </div>
+      <div class="video-card" style="background:#e0e0e8" onclick="alert('Lucas estudou Cinemática em 10 minutos e acertou 8 de 10!')">
+        <div class="video-play">▶</div>
+        <div class="overlay">
+          <div class="text-sm">🎯 Lucas</div>
+          <div class="text-xs muted">dominou Cinemática</div>
+        </div>
+      </div>
+      <div class="video-card" style="background:#e8e5d8" onclick="alert('Bia foi de 0 a 7 conceitos de Física em 1 semana!')">
+        <div class="video-play">▶</div>
+        <div class="overlay">
+          <div class="text-sm">📚 Bia</div>
+          <div class="text-xs muted">7 conceitos em 1 sem.</div>
+        </div>
+      </div>
+      <div class="video-card" style="background:#dce8dc" onclick="alert('Pedro mandou áudio e os cards foram gerados!')">
+        <div class="video-play">▶</div>
+        <div class="overlay">
+          <div class="text-sm">🎙️ Pedro</div>
+          <div class="text-xs muted">estudou só falando</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="spacer"></div>
+    
+    <div class="center mb-24">
+      <div class="text-lg mb-8">Tem prova chegando?</div>
+      <div class="text-sm muted">
+        Manda a foto do slide, da lista,<br>do caderno. A IA transforma em estudo.
+      </div>
+    </div>
+    
+    <button class="btn-primary" onclick="navigate('pre-study')">
+      Começar de graça
+    </button>
+    <div class="center text-xs mt-4 muted">Grátis pra sua 1ª prova. Sem cadastro.</div>
+  </div>
+
+  <!-- ===== PRE-STUDY (v3b — guided questions + single voice) ===== -->
+  <div class="screen" id="pre-study">
+    <div class="status-bar">
+      <button class="btn-sm btn-secondary" onclick="navigate('home')">← voltar</button>
+      <span class="text-xs">Antes de começar</span>
+      <span class="text-xs">⚡</span>
+    </div>
+    
+    <div class="text-md mb-8">Conta pra gente — é rapidinho:</div>
+    
+    <!-- Guided questions (visible) -->
+    <div class="card mb-8">
+      <div class="text-sm mb-2">📚 Pra que você tá estudando?</div>
+      <div class="text-xs muted">Ex: Prova de Física, recuperação, revisão pro ENEM...</div>
+    </div>
+    
+    <div class="card mb-8">
+      <div class="text-sm mb-2">📖 Qual a matéria?</div>
+      <div class="text-xs muted">Ex: Física — Cinemática, MRU e MRUV</div>
+    </div>
+    
+    <div class="card mb-8">
+      <div class="text-sm mb-2">⏱️ Quanto tempo você tem?</div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="btn-sm btn-secondary" onclick="this.style.background='#333';this.style.color='#fff'">10 min</button>
+        <button class="btn-sm btn-secondary" onclick="this.style.background='#333';this.style.color='#fff'">20 min</button>
+        <button class="btn-sm btn-secondary" onclick="this.style.background='#333';this.style.color='#fff'">30 min</button>
+      </div>
+    </div>
+    
+    <!-- Single voice button for all questions -->
+    <div class="center mb-12">
+      <button class="voice-btn" id="mainVoice" onclick="toggleVoice('mainVoice')" 
+              style="width:64px;height:64px;font-size:26px;margin:0 auto">🎤</button>
+      <div class="text-sm mt-4" id="voiceStatus">Ou fala tudo de uma vez</div>
+    </div>
+    
+    <div class="text-xs center mb-6 muted" id="orType">Ou escreve aqui:</div>
+    <wired-input id="textAll" placeholder="Ex: Prova de Física amanhã, cinemática, tenho 20 min..." 
+                 style="width:100%;font-family:'Patrick Hand',cursive;font-size:14px"></wired-input>
+    
+    <div class="spacer"></div>
+    
+    <button class="btn-primary" onclick="navigate('upload')">
+      Beleza — manda o material
+    </button>
+    <div class="center text-xs mt-4 muted">Você pode enviar até 3 materiais.</div>
+  </div>
+
+  <!-- ===== UPLOAD ===== -->
+  <div class="screen" id="upload">
+    <div class="status-bar">
+      <button class="btn-sm btn-secondary" onclick="navigate('pre-study')">← voltar</button>
+      <span class="text-xs">Prova de Física</span>
+      <span class="text-xs">0/3</span>
+    </div>
+    
+    <div class="text-md mb-10">Manda o que você tem:</div>
+    
+    <div class="upload-slots">
+      <div class="upload-slot" id="slot1" onclick="fillSlot('slot1')">
+        <span style="font-size:26px">+</span><span style="font-size:10px">slide</span>
+      </div>
+      <div class="upload-slot" id="slot2" onclick="fillSlot('slot2')">
+        <span style="font-size:26px">+</span><span style="font-size:10px">lista</span>
+      </div>
+      <div class="upload-slot" id="slot3" onclick="fillSlot('slot3')">
+        <span style="font-size:26px">+</span><span style="font-size:10px">caderno</span>
+      </div>
+    </div>
+    
+    <div class="text-xs center mb-10 muted">Tira foto ou escolhe da galeria.</div>
+    
+    <div class="card"><div class="text-sm">📄 Slide — Cinemática (PDF)</div><div class="text-xs muted">2.4 MB</div></div>
+    <div class="card"><div class="text-sm">📸 Lista de Exercícios — MRU</div><div class="text-xs muted">foto</div></div>
+    
+    <div class="spacer"></div>
+    <button class="btn-primary" onclick="navigate('review')">Continuar (2/3)</button>
+  </div>
+
+  <!-- ===== REVIEW OCR ===== -->
+  <div class="screen" id="review">
+    <div class="status-bar">
+      <button class="btn-sm btn-secondary" onclick="navigate('upload')">← voltar</button>
+      <span class="text-xs">Conferir</span>
+      <span class="text-xs">⚡</span>
+    </div>
+    
+    <div class="text-md mb-4">Confere se tá certo:</div>
+    <div class="text-xs mb-10 muted">A IA leu seu material. Dá uma olhada.</div>
+    
+    <div class="card">
+      <div class="text-xs mb-4 muted">TEXTO EXTRAÍDO</div>
+      <wired-textarea style="width:100%;font-family:'Patrick Hand',cursive;font-size:13px;min-height:130px">Cinemática — MRU
+      
+Velocidade média = ΔS/Δt
+S = S₀ + v·t
+
+Ex: Um carro percorre 200 km em 4h.
+Qual a velocidade média?
+Resp: v = 200/4 = 50 km/h</wired-textarea>
+    </div>
+    
+    <div class="spacer"></div>
+    <button class="btn-primary" onclick="navigate('processing')">Tá certo — gerar cards</button>
+    <button class="btn-secondary mt-6" onclick="navigate('processing')">Quero editar</button>
+  </div>
+
+  <!-- ===== PROCESSING ===== -->
+  <div class="screen" id="processing">
+    <div class="spacer"></div>
+    <div class="center">
+      <div style="font-size:44px;margin-bottom:20px">⚡</div>
+      <div class="text-lg mb-4">Gerando seus cards...</div>
+      <div class="text-sm mb-20 muted">Analisando Cinemática — MRU</div>
+      <wired-progress value="65" style="width:80%;margin:0 auto"></wired-progress>
+      <div class="text-xs mt-8 muted">Extraindo conceitos...</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="center text-xs muted">Menos de 3 minutos</div>
+  </div>
+
+  <!-- ===== CARDS READY ===== -->
+  <div class="screen" id="cards-ready">
+    <div class="status-bar">
+      <span class="text-xs">9:43</span>
+      <span class="text-xs">Física · Cinemática</span>
+      <span class="text-xs">⚡</span>
+    </div>
+    
+    <div class="spacer"></div>
+    <div class="center">
+      <div style="font-size:44px;margin-bottom:16px">✓</div>
+      <div class="text-lg mb-4">Seus cards estão prontos!</div>
+    </div>
+    
+    <div class="card center">
+      <div class="text-md mb-2">14 cards</div>
+      <div class="text-sm muted">Cinemática — MRU e MRUV</div>
+      <wired-divider></wired-divider>
+      <div class="text-xs muted mt-6">Slide (p.2-5) + Lista MRU (p.1-3)</div>
+    </div>
+    
+    <div class="card">
+      <div class="text-sm mb-4">📝 Conceitos:</div>
+      <div class="text-xs muted">Velocidade média · MRU · MRUV · Gráficos S×t e V×t</div>
+    </div>
+    
+    <div class="spacer"></div>
+    <button class="btn-primary" onclick="navigate('study')">Começar — 10 min</button>
+    <div class="center text-xs mt-4 muted">Ou volta depois. Seus cards ficam salvos.</div>
+  </div>
+
+  <!-- ===== STUDY SESSION (v3) ===== -->
+  <div class="screen" id="study" style="padding:0;position:relative">
+    <div style="padding:10px 14px 0">
+      <div class="status-bar">
+        <span class="text-xs">Prova de Física</span>
+        <span class="text-xs" id="cardCounter">5 de 14</span>
+        <span class="text-xs">⚡</span>
+      </div>
+      <div class="progress-wrapper">
+        <wired-progress value="36" id="studyProgress"></wired-progress>
+      </div>
+    </div>
+    
+    <!-- QUESTION VIEW (before answer — no side buttons) -->
+    <div style="flex:1;display:flex;padding:4px 14px;position:relative" id="questionView">
+      <div class="swipe-card">
+        <div class="text-xs mb-6 muted">Fonte: Slide — Cinemática, p.3</div>
+        
+        <div class="text-base mb-16" style="font-weight:bold">
+          Um carro percorre 200 km em 4 horas. Qual a velocidade média?
+        </div>
+        
+        <wired-input id="answerInput" placeholder="Sua resposta..." style="width:100%;font-family:'Patrick Hand',cursive;font-size:15px"></wired-input>
+      </div>
+    </div>
+    
+    <!-- ANSWER VIEW (after answer — side buttons appear) -->
+    <div style="flex:1;display:none;padding:4px 14px;position:relative" id="answerView">
+      <div class="swipe-card">
+        <div class="text-xs mb-6 muted">Fonte: Slide — Cinemática, p.3</div>
+        
+        <div class="text-base mb-6" style="font-weight:bold">
+          Um carro percorre 200 km em 4 horas. Qual a velocidade média?
+        </div>
+        
+        <div class="card card-dark">
+          <div class="text-sm mb-4">✓ Certo! 50 km/h</div>
+          <div class="text-base mb-4">v = ΔS/Δt = 200/4 = <b>50 km/h</b></div>
+          <div class="text-xs muted">Fonte: Slide — Cinemática, p.3</div>
+        </div>
+        
+        <button class="btn-sm btn-secondary mt-8" style="align-self:flex-start" onclick="navigate('chat-help')">
+          Me explica de outro jeito
+        </button>
+        
+        <!-- Points pop -->
+        <div class="points-pop" id="pointsPop" style="display:none">+10</div>
+      </div>
+      
+      <!-- Side buttons (only on answer view) -->
+      <div class="side-buttons">
+        <button class="side-btn" id="likeBtn" onclick="toggleLike()">
+          <div class="icon" id="likeIcon">❤️</div>
+          <span id="likeCount">12</span>
+        </button>
+        <button class="side-btn" onclick="alert('Compartilhou! Frame gerado.')">
+          <div class="icon">📤</div>
+          <span>compartilhar</span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Bottom actions: QUESTION view -->
+    <div id="bottomQuestion" style="padding:6px 14px 14px">
+      <div class="bottom-actions">
+        <button class="btn-sm btn-secondary" style="flex:1" onclick="navigate('chat-help')">💬 Pedir ajuda</button>
+        <button class="btn-sm btn-secondary" style="flex:1" onclick="showHint()">💡 Colinha</button>
+      </div>
+      <button class="btn-primary btn-sm mt-8" onclick="showAnswer()">Responder ↑</button>
+      <div class="swipe-hint text-xs mt-4 muted">desliza pra cima pra responder</div>
+    </div>
+    
+    <!-- Bottom actions: ANSWER view -->
+    <div id="bottomAnswer" style="display:none;padding:6px 14px 14px">
+      <div class="swipe-hint text-sm mt-4">desliza pro lado → próximo card</div>
+      <div class="swipe-hint text-xs muted">ou volta no anterior ←</div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn-sm btn-secondary" style="flex:1" onclick="navigate('session-complete')">→ próximo</button>
+        <button class="btn-sm btn-secondary" style="flex:1;font-size:11px" onclick="navigate('chat-help')">💬 ajuda</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHAT HELP (simplified) ===== -->
+  <div class="screen" id="chat-help">
+    <div class="status-bar">
+      <button class="btn-sm btn-secondary" onclick="navigate('study')">← fechar</button>
+      <span class="text-xs">Pedir ajuda</span>
+      <span class="text-xs">💬</span>
+    </div>
+    
+    <div class="text-sm mb-10">Sobre: <i>"Qual a velocidade média?"</i></div>
+    
+    <div class="card mb-6">
+      <div class="text-sm">🤖 Tutor</div>
+      <div class="text-xs mt-2">Opa! Velocidade média = distância ÷ tempo. 200 km ÷ 4h. Qual você acha?</div>
+    </div>
+    
+    <div class="card mb-6" style="margin-left:16px;background:#f5f5f5">
+      <div class="text-sm">Você</div>
+      <div class="text-xs mt-2">40?</div>
+    </div>
+    
+    <div class="card mb-6">
+      <div class="text-sm">🤖 Tutor</div>
+      <div class="text-xs mt-2">Quase! 200 ÷ 4 = 50. Seu raciocínio tá certo — só a conta que deu errado. Tenta de novo?</div>
+    </div>
+    
+    <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px">
+      <wired-input placeholder="Digita ou fala..." style="flex:1;font-family:'Patrick Hand',cursive;font-size:13px"></wired-input>
+      <button class="voice-btn" id="voiceChat" onclick="toggleVoice('voiceChat')" style="width:42px;height:42px;font-size:18px">🎤</button>
+    </div>
+    
+    <button class="btn-secondary mt-8" onclick="navigate('study')">Voltar pro card</button>
+  </div>
+
+  <!-- ===== SESSION COMPLETE ===== -->
+  <div class="screen" id="session-complete">
+    <div class="status-bar">
+      <span class="text-xs">9:55</span>
+      <span class="text-xs">Sessão concluída</span>
+      <span class="text-xs">⚡</span>
+    </div>
+    
+    <div class="spacer"></div>
+    
+    <div class="center">
+      <div style="font-size:40px;margin-bottom:10px">🎯</div>
+      <div class="text-lg mb-4">Boa, mandou bem!</div>
+      <div class="text-sm mb-14 muted">+32 pontos nessa sessão</div>
+    </div>
+    
+    <div class="card center">
+      <div class="text-md">12 min</div>
+      <div class="text-sm muted">de estudo hoje</div>
+      <wired-divider></wired-divider>
+      <div class="text-sm mt-6">8 conceitos · 6 acertos · 2 pra revisar</div>
+    </div>
+    
+    <div class="card">
+      <div class="text-xs mb-4 muted">CINEMÁTICA</div>
+      <wired-progress value="58"></wired-progress>
+      <div class="text-sm mt-4">7 de 12 conceitos dominados</div>
+    </div>
+    
+    <div class="card">
+      <div class="text-sm">📈 Velocidade média: você errava há 2 semanas. Hoje acertou sozinho!</div>
+    </div>
+    
+    <div class="center mt-10 mb-6">
+      <button class="btn-secondary" style="width:auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;padding:10px 20px" onclick="alert('Frame compartilhável gerado!')">
+        📤 Compartilhar meu progresso
+      </button>
+    </div>
+    
+    <button class="btn-primary" onclick="navigate('home')">Voltar pro início</button>
+  </div>
+
+  <!-- ===== PAYWALL ===== -->
+  <div class="screen" id="paywall">
+    <div class="status-bar">
+      <span class="text-xs">9:56</span>
+      <span class="text-xs">Meu Modo</span>
+      <span class="text-xs">⚡</span>
+    </div>
+    
+    <div class="spacer"></div>
+    <div class="center">
+      <div style="font-size:36px;margin-bottom:10px">🔓</div>
+      <div class="text-lg mb-6">Sua 1ª prova foi grátis!</div>
+    </div>
+    
+    <div class="card center">
+      <div class="text-sm mb-4 muted">
+        <b>8 conceitos</b> em <b>4 sessões</b><br>
+        <b>6 conceitos consolidados</b>
+      </div>
+      <wired-divider></wired-divider>
+      <div class="text-base mt-6">Pra segunda prova:</div>
+      <div class="text-xs muted mt-2">Acesso ilimitado · múltiplas matérias</div>
+    </div>
+    
+    <div class="spacer"></div>
+    <button class="btn-primary" onclick="navigate('link-pagamento')">Mandar link pro meu pai</button>
+    <button class="btn-secondary mt-6" onclick="navigate('home')">Continuar revisando meus cards</button>
+  </div>
+
+  <!-- ===== LINK PAGAMENTO ===== -->
+  <div class="screen" id="link-pagamento">
+    <div class="status-bar">
+      <span class="text-xs">9:56</span>
+      <span class="text-xs">Compartilhar</span>
+      <span class="text-xs">⚡</span>
+    </div>
+    
+    <div class="spacer"></div>
+    <div class="center">
+      <div style="font-size:36px;margin-bottom:10px">📤</div>
+      <div class="text-md mb-10">Manda pro seu pai</div>
+    </div>
+    
+    <div class="card">
+      <div class="text-xs mb-4 muted">PRÉVIA:</div>
+      <div class="text-base mb-4">"Lucas quer continuar estudando"</div>
+      <div class="text-sm muted">✓ 4 sessões · 8 conceitos · 6 consolidados</div>
+      <wired-divider></wired-divider>
+      <div class="text-sm mt-6">Meu Modo — R$ 29,90/mês</div>
+      <div class="text-xs muted">Cancele quando quiser</div>
+    </div>
+    
+    <div class="spacer"></div>
+    <button class="btn-primary">Compartilhar no WhatsApp</button>
+    <button class="btn-secondary mt-6" onclick="navigate('paywall')">Voltar</button>
+  </div>
+
+  <!-- ===== POST-EXAM BAD ===== -->
+  <div class="screen" id="post-exam-bad">
+    <div class="status-bar">
+      <span class="text-xs">10:12</span>
+      <span class="text-xs">Prova concluída</span>
+      <span class="text-xs">⚡</span>
+    </div>
+    
+    <div class="spacer"></div>
+    <div class="center"><div class="text-lg mb-6">E aí, como foi?</div></div>
+    
+    <div class="stars">
+      <button class="star-btn active">★</button>
+      <button class="star-btn active">★</button>
+      <button class="star-btn">★</button>
+      <button class="star-btn">★</button>
+      <button class="star-btn">★</button>
+    </div>
+    
+    <div class="card center mt-10">
+      <div style="font-size:24px;margin-bottom:6px">💪</div>
+      <div class="text-md mb-4">Provas nem sempre mostram tudo.</div>
+      <div class="text-sm mb-6 muted">Você consolidou 4 conceitos em 6 sessões. Isso fica.</div>
+      <div class="text-sm mb-4">O que te pegou?</div>
+      <div style="display:flex;flex-direction:column;gap:4px;text-align:left">
+        <button class="btn-sm btn-secondary" style="text-align:left">Caiu coisa que não estudei</button>
+        <button class="btn-sm btn-secondary" style="text-align:left">As questões eram diferentes</button>
+        <button class="btn-sm btn-secondary" style="text-align:left">Deu branco na hora</button>
+      </div>
+    </div>
+    
+    <div class="spacer"></div>
+    <button class="btn-primary" onclick="navigate('home')">Revisar meus cards</button>
+  </div>
+
+</div><!-- /phone -->
+
+<script>
+  function navigate(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelector('.phone').scrollTop=0;
+    if(id==='processing') setTimeout(()=>navigate('study'),2500);
+  }
+
+  function fillSlot(id){
+    var s=document.getElementById(id);
+    s.classList.add('filled');
+    s.innerHTML='<span style="font-size:18px">✓</span><span style="font-size:10px">ok</span>';
+  }
+
+  function showAnswer(){
+    document.getElementById('questionView').style.display='none';
+    document.getElementById('answerView').style.display='flex';
+    document.getElementById('bottomQuestion').style.display='none';
+    document.getElementById('bottomAnswer').style.display='block';
+    // Points pop
+    var p=document.getElementById('pointsPop');
+    p.style.display='block';
+    p.style.animation='none';
+    p.offsetHeight;
+    p.style.animation='popUp 1.8s forwards';
+  }
+
+  function toggleLike(){
+    var icon=document.getElementById('likeIcon');
+    var count=document.getElementById('likeCount');
+    if(icon.classList.contains('liked')){
+      icon.classList.remove('liked');
+      icon.textContent='❤️';
+      count.textContent='12';
+    }else{
+      icon.classList.add('liked');
+      icon.textContent='❤️‍🔥';
+      count.textContent='13';
+    }
+  }
+
+  function showHint(){
+    var inp=document.getElementById('answerInput');
+    inp.value='Dica: divide a distância pelo tempo...';
+    inp.style.color='#999';
+  }
+
+  function toggleVoice(btnId){
+    var btn=document.getElementById(btnId);
+    btn.classList.toggle('recording');
+    if(btn.classList.contains('recording')){
+      btn.textContent='🔴';
+      // Simulate parsed result for main voice
+      if(btnId==='mainVoice'){
+        document.getElementById('voiceStatus').textContent='Ouvindo...';
+        setTimeout(()=>{
+          btn.classList.remove('recording');
+          btn.textContent='🎤';
+          document.getElementById('voiceStatus').textContent='Pronto!';
+          document.getElementById('parsedResult').style.display='block';
+        },2000);
+      }else{
+        setTimeout(()=>{btn.classList.remove('recording');btn.textContent='🎤';},2000);
+      }
+    }else{
+      btn.textContent='🎤';
+      if(btnId==='mainVoice') document.getElementById('voiceStatus').textContent='Toca pra falar';
+    }
+  }
+</script>
+
+</body>
+</html>
